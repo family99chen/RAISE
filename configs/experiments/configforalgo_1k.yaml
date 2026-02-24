@@ -1,0 +1,27 @@
+rag_search_space:
+  rewriter:
+    model_url: ["http://localhost:9000/v1"]
+    prompt_template_id: ["1", "2"]
+
+  chunking:
+    chunk_size: [512, 1024]
+    chunk_overlap: [0, 128]
+
+  retrieve:
+    model_url: ["models/all-MiniLM-L6-v2"]
+    topk: [1, 3, 5]
+    bm25_weight: [0.0, 0.25, 0.5]
+
+  reranker:
+    model_url: ["models/ms-marco-MiniLM-L6-v2"]
+    topk: [1, 3]
+
+  pruner:
+    model_url: ["http://localhost:9000/v1"]
+    prompt_template_id: ["1", "2"]
+
+  generator:
+    model_url: ["http://localhost:9000/v1"]
+
+eval_metrics:
+  enabled: "F1,ROUGE-L,BLEU,METEOR"

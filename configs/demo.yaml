@@ -1,0 +1,36 @@
+rewriter:
+  model_url: "http://localhost:9000/v1"
+  #model_url: "https://api.example.com/v1"
+  #model_name: "your-model-name"
+  #api_key: "your-api-key"
+  prompt_template_id: "1"
+chunking:
+  chunk_size: 2048
+  chunk_overlap: 0
+retrieve:
+  model_url: "/path/to/embedding-model"
+  topk: 50
+  bm25_weight: 0.5
+reranker:
+  model_url: "/path/to/reranker-model"
+  topk: 1
+pruner:
+  model_url: "http://localhost:9000/v1"
+  #model_url: "https://api.example.com/v1"
+  #model_name: "your-model-name"
+  #api_key: "your-api-key"
+  prompt_template_id: "2"
+generator:
+  model_url: "http://localhost:9000/v1"
+  #model_url: "https://api.example.com/v1"
+  #model_name: "your-model-name"
+  #api_key: "your-api-key"
+
+eval_metrics:
+  llmaaj:
+    model_url: "http://localhost:9000/v1"
+    #model_url: "https://api.example.com/v1"
+    #model_name: "your-model-name"
+    #api_key: "your-api-key"
+  bert:
+    model_url: "/path/to/bert-model"

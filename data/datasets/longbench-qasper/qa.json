@@ -1,0 +1,136 @@
+[
+  {
+    "query": "What features are used?",
+    "references": [
+      "Unanswerable"
+    ]
+  },
+  {
+    "query": "what were the baselines?",
+    "references": [
+      "Unanswerable",
+      "LF-MMI Attention\nSeq2Seq \nRNN-T \nChar E2E LF-MMI \nPhone E2E LF-MMI \nCTC + Gram-CTC"
+    ]
+  },
+  {
+    "query": "What type of evaluation is proposed for this task?",
+    "references": [
+      "Answer with content missing: (Evaluation Metrics section) Precision, Recall, F1-scores, Strict match, METEOR, ROUGE-2"
+    ]
+  },
+  {
+    "query": "What NLP tasks do they consider?",
+    "references": [
+      "text classification for themes including sentiment, web-page, science, medical and healthcare"
+    ]
+  },
+  {
+    "query": "Do they report results only on English data?",
+    "references": [
+      "Unanswerable",
+      "Unanswerable"
+    ]
+  },
+  {
+    "query": "by how much did their model improve?",
+    "references": [
+      "For the WikiLarge dataset, the improvement over baseline NMT is 2.11 BLEU, 1.7 FKGL and 1.07 SARI.\nFor the WikiSmall dataset, the improvement over baseline NMT is  8.37 BLEU.",
+      "6.37 BLEU"
+    ]
+  },
+  {
+    "query": "What are the 12 languages covered?",
+    "references": [
+      "Chinese Mandarin, Welsh, English, Estonian, Finnish, French, Hebrew, Polish, Russian, Spanish, Kiswahili, Yue Chinese",
+      "Chinese Mandarin, Welsh, English, Estonian, Finnish, French, Hebrew, Polish, Russian, Spanish, Kiswahili, Yue Chinese"
+    ]
+  },
+  {
+    "query": "What background do they have?",
+    "references": [
+      "Unanswerable"
+    ]
+  },
+  {
+    "query": "Is it possible to convert a cloze-style questions to a naturally-looking questions?",
+    "references": [
+      "Unanswerable",
+      "Unanswerable"
+    ]
+  },
+  {
+    "query": "What architecture does the encoder have?",
+    "references": [
+      "LSTM",
+      "LSTM"
+    ]
+  },
+  {
+    "query": "which chinese datasets were used?",
+    "references": [
+      "Answer with content missing: (Data section) Chinese with version 5.1 of the Chinese Penn Treebank (CTB)"
+    ]
+  },
+  {
+    "query": "What is the model performance on target language reading comprehension?",
+    "references": [
+      "Table TABREF6, Table TABREF8",
+      "when testing on English, the F1 score of the model training on Chinese (Zh) is 53.8,  F1 score is only 44.1 for the model training on Zh-En"
+    ]
+  },
+  {
+    "query": "what was the baseline?",
+    "references": [
+      " MT system on the data released by BIBREF11",
+      "Transformer base, two-pass CADec model"
+    ]
+  },
+  {
+    "query": "How are weights dynamically adjusted?",
+    "references": [
+      "One can think $(1-p_{i1})$ as a weight associated with each example, which changes as training proceeds. The intuition of changing $p_{i1}$ to $(1-p_{i1}) p_{i1}$ is to push down the weight of easy examples. For easy examples whose probability are approaching 0 or 1, $(1-p_{i1}) p_{i1}$ makes the model attach significantly less focus to them. Figure FIGREF23 gives gives an explanation from the perspective in derivative: the derivative of $\\frac{(1-p)p}{1+(1-p)p}$ with respect to $p$ approaches 0 immediately after $p$ approaches 0, which means the model attends less to examples once they are correctly classified.",
+      "associates each training example with a weight in proportion to $(1-p)$, and this weight dynamically changes as training proceeds"
+    ]
+  },
+  {
+    "query": "Which existing benchmarks did they compare to?",
+    "references": [
+      "Affective Text, Fairy Tales, ISEAR",
+      " Affective Text dataset, Fairy Tales dataset, ISEAR dataset"
+    ]
+  },
+  {
+    "query": "How does this approach compare to other WSD approaches employing word embeddings?",
+    "references": [
+      "GM$\\_$KL achieves better correlation than existing approaches for various metrics on SCWS dataset."
+    ]
+  },
+  {
+    "query": "What are the datasets used for evaluation?",
+    "references": [
+      "CNN/DailyMail news highlights, New York Times Annotated Corpus, XSum",
+      "the CNN/DailyMail news highlights dataset BIBREF24, the New York Times Annotated Corpus (NYT; BIBREF25), XSum BIBREF22"
+    ]
+  },
+  {
+    "query": "What metrics are used for evaluation?",
+    "references": [
+      "translation probabilities, Labeled Attachment Scores (LAS)",
+      "accuracy, Labeled Attachment Scores (LAS)"
+    ]
+  },
+  {
+    "query": "Ngrams of which length are aligned using PARENT?",
+    "references": [
+      "Unanswerable",
+      "Answer with content missing: (Parent subsections) combine precisions for n-gram orders 1-4"
+    ]
+  },
+  {
+    "query": "Were any of the pipeline components based on deep learning models?",
+    "references": [
+      "No",
+      "No"
+    ]
+  }
+]

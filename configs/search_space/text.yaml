@@ -1,0 +1,61 @@
+
+# Only values listed under each "allowed" key are selectable.
+# Model URL, model name, and key can be provided at runtime.
+
+prompt_templates:
+  rewriter:
+    "1": "You are a query rewriter. Rewrite the user query for retrieval.\nRules:\n- Output only the rewritten query.\n- Do NOT answer the question.\n- No extra text, no explanations."
+    "2": "You are a query rewriter. Rewrite the user query for retrieval with keywords and entities.\nRules:\n- Output only the rewritten query.\n- Do NOT answer the question.\n- No extra text, no explanations."
+    "3": "You are a query rewriter. Rewrite the user query as a standalone question for retrieval.\nRules:\n- Output only the rewritten query.\n- Do NOT answer the question.\n- No extra text, no explanations."
+  pruner:
+    "1": "You are an evidence pruner. Keep only sentences that directly support the answer.\nRules:\n- Output only the pruned context text.\n- Do NOT answer the question.\n- No extra text or explanations."
+    "2": "You are an evidence pruner. Select the minimal context needed to answer.\nRules:\n- Output only the pruned context text.\n- Do NOT answer the question.\n- No extra text or explanations."
+    "3": "You are an evidence pruner. Remove irrelevant content and keep key evidence only.\nRules:\n- Output only the pruned context text.\n- Do NOT answer the question.\n- No extra text or explanations."
+
+rag_search_space:
+  rewriter:
+    model_url: "your model url"
+    model_name: "model name used"
+    api_key: "your api key"
+    prompt_template_id:
+      allowed: ["1", "2", "3"]
+
+  chunking:
+    chunk_size:
+      allowed: [256, 512, 1024, 2048]
+    chunk_overlap:
+      allowed: [0, 64, 128, 192]
+
+  retrieve:
+    model_url: "your model url"
+    topk:
+      allowed: [1, 3, 5, 10, 20, 50]
+    bm25_weight:
+      allowed: [0.0, 0.25, 0.5, 0.75, 1.0]
+
+  reranker:
+    model_url: "your model url"
+    topk:
+      allowed: [1, 3, 5, 10, 20, 50]
+
+  pruner:
+    model_url: "your model url"
+    model_name: "model name used"
+    api_key: "your api key"
+    prompt_template_id:
+      allowed: ["1", "2", "3"]
+
+  generator:
+    model_url: "your model url"
+    model_name: "model name used"
+    api_key: "your api key"
+
+eval_metrics:
+  enabled:
+    allowed: ["..."]
+  llmaaj:
+    model_url: "your model url"
+    model_name: "model name used"
+    api_key: "your api key"
+  bert: 
+    model_url: "your model url"

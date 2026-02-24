@@ -1,0 +1,142 @@
+[
+  {
+    "id": "14445",
+    "query": "What can Herman and Clara trade to each get what they want?\nChoices:\n0. Herman can trade his tomatoes for Clara's broccoli.\n1. Clara can trade her broccoli for Herman's oranges.\n2. Herman can trade his tomatoes for Clara's carrots.\n3. Clara can trade her almonds for Herman's tomatoes.",
+    "references": [
+      "Herman can trade his tomatoes for Clara's broccoli."
+    ]
+  },
+  {
+    "id": "2529",
+    "query": "What evidence of a wildfire does this picture show?\nChoices:\n0. The trees have straight trunks.\n1. The forest floor is on fire.",
+    "references": [
+      "The forest floor is on fire."
+    ]
+  },
+  {
+    "id": "527",
+    "query": "Think about the magnetic force between the magnets in each pair. Which of the following statements is true?\nChoices:\n0. The magnitude of the magnetic force is smaller in Pair 2.\n1. The magnitude of the magnetic force is smaller in Pair 1.\n2. The magnitude of the magnetic force is the same in both pairs.",
+    "references": [
+      "The magnitude of the magnetic force is the same in both pairs."
+    ]
+  },
+  {
+    "id": "16533",
+    "query": "Which term matches the picture?\nChoices:\n0. monocot\n1. dicot",
+    "references": [
+      "monocot"
+    ]
+  },
+  {
+    "id": "6075",
+    "query": "Compare the average kinetic energies of the particles in each sample. Which sample has the higher temperature?\nChoices:\n0. sample B\n1. neither; the samples have the same temperature\n2. sample A",
+    "references": [
+      "sample B"
+    ]
+  },
+  {
+    "id": "5365",
+    "query": "What can Bill and Nora trade to each get what they want?\nChoices:\n0. Bill can trade his tomatoes for Nora's broccoli.\n1. Nora can trade her almonds for Bill's tomatoes.\n2. Nora can trade her broccoli for Bill's oranges.\n3. Bill can trade his tomatoes for Nora's carrots.",
+    "references": [
+      "Bill can trade his tomatoes for Nora's broccoli."
+    ]
+  },
+  {
+    "id": "4860",
+    "query": "Which of the following could Meg and Tammy's test show?\nChoices:\n0. if the concrete from each batch took the same amount of time to dry\n1. if a new batch of concrete was firm enough to use",
+    "references": [
+      "if a new batch of concrete was firm enough to use"
+    ]
+  },
+  {
+    "id": "3081",
+    "query": "Which solution has a higher concentration of yellow particles?\nChoices:\n0. neither; their concentrations are the same\n1. Solution B\n2. Solution A",
+    "references": [
+      "Solution A"
+    ]
+  },
+  {
+    "id": "16423",
+    "query": "Select the organism in the same species as the pink skunk clownfish.\nChoices:\n0. Amphiprion perideraion\n1. Ambystoma opacum\n2. Amphiprion frenatus",
+    "references": [
+      "Amphiprion perideraion"
+    ]
+  },
+  {
+    "id": "2287",
+    "query": "Will these magnets attract or repel each other?\nChoices:\n0. attract\n1. repel",
+    "references": [
+      "repel"
+    ]
+  },
+  {
+    "id": "15150",
+    "query": "What is the probability that an American curl cat produced by this cross will be heterozygous for the ear type gene?\nChoices:\n0. 0/4\n1. 3/4\n2. 2/4\n3. 4/4\n4. 1/4",
+    "references": [
+      "2/4"
+    ]
+  },
+  {
+    "id": "16517",
+    "query": "Select the organism in the same genus as the Dalmatian pelican.\nChoices:\n0. Falco peregrinus\n1. Balearica pavonina\n2. Pelecanus erythrorhynchos",
+    "references": [
+      "Pelecanus erythrorhynchos"
+    ]
+  },
+  {
+    "id": "19733",
+    "query": "Which of the following organisms is the secondary consumer in this food web?\nChoices:\n0. persimmon tree\n1. silver maple\n2. pine vole\n3. swallowtail caterpillar",
+    "references": [
+      "pine vole"
+    ]
+  },
+  {
+    "id": "12395",
+    "query": "Think about the magnetic force between the magnets in each pair. Which of the following statements is true?\nChoices:\n0. The magnitude of the magnetic force is greater in Pair 2.\n1. The magnitude of the magnetic force is greater in Pair 1.\n2. The magnitude of the magnetic force is the same in both pairs.",
+    "references": [
+      "The magnitude of the magnetic force is the same in both pairs."
+    ]
+  },
+  {
+    "id": "1919",
+    "query": "Identify the question that Evan's experiment can best answer.\nChoices:\n0. Do steel nails rust in fewer days when submerged in a large volume of liquid compared to a small volume?\n1. Do steel nails take fewer days to rust in water compared to vinegar?",
+    "references": [
+      "Do steel nails take fewer days to rust in water compared to vinegar?"
+    ]
+  },
+  {
+    "id": "13332",
+    "query": "Which term matches the picture?\nChoices:\n0. vascular plant\n1. nonvascular plant",
+    "references": [
+      "vascular plant"
+    ]
+  },
+  {
+    "id": "9490",
+    "query": "Think about the magnetic force between the magnets in each pair. Which of the following statements is true?\nChoices:\n0. The magnitude of the magnetic force is greater in Pair 2.\n1. The magnitude of the magnetic force is the same in both pairs.\n2. The magnitude of the magnetic force is greater in Pair 1.",
+    "references": [
+      "The magnitude of the magnetic force is greater in Pair 1."
+    ]
+  },
+  {
+    "id": "680",
+    "query": "Which animal's feet are also adapted to walk on snow and ice?\nChoices:\n0. Siberian tiger\n1. horse",
+    "references": [
+      "Siberian tiger"
+    ]
+  },
+  {
+    "id": "653",
+    "query": "What type of rock is peridotite?\nChoices:\n0. sedimentary\n1. metamorphic\n2. igneous",
+    "references": [
+      "igneous"
+    ]
+  },
+  {
+    "id": "2050",
+    "query": "Which better describes the Monongahela National Forest ecosystem?\nChoices:\n0. It has cold, wet winters. It also has soil that is rich in nutrients.\n1. It has soil that is poor in nutrients. It also has only a few types of trees.",
+    "references": [
+      "It has cold, wet winters. It also has soil that is rich in nutrients."
+    ]
+  }
+]

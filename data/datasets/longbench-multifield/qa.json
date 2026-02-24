@@ -1,0 +1,142 @@
+[
+  {
+    "id": "8fbf0a6531d9250e6bcda0c7ba456441f6d4073bf08de826",
+    "query": "What did the decision to base the water rates on usage reflect?",
+    "references": [
+      "Fairness."
+    ]
+  },
+  {
+    "id": "b5b0eb150f44a4d7641b9adf9267ca0c2492ea46626449b3",
+    "query": "How is electricity used in everyday life?",
+    "references": [
+      "Electricity is used for transport, heating, lighting, communications, and computation."
+    ]
+  },
+  {
+    "id": "0ecdb8439f1360140995c6f5f6cc99c38cebb9216d1395e4",
+    "query": "What happens to Ngotho after he attacks Jacobo at a workers' strike?",
+    "references": [
+      "After attacking Jacobo at a workers' strike, Ngotho loses his job and Njoroge's family is forced to move."
+    ]
+  },
+  {
+    "id": "235a5c99cd7fae9e2b410ad99c1b1fafea43799d3f1138a8",
+    "query": "When did KSTP switch to a sports radio format?",
+    "references": [
+      "KSTP switched to a sports radio format on February 15, 2010."
+    ]
+  },
+  {
+    "id": "a013f691a7063527fa4e7a4b357081c76656af3cd402a27a",
+    "query": "What hedge fund's collapse in 1998 highlighted the need for regulation of derivatives?",
+    "references": [
+      "Long Term Capital Management (LTCM)."
+    ]
+  },
+  {
+    "id": "d70ca68d05af951cd8ff2052095597d1b4dca557bfb0b40b",
+    "query": "When did the Tevatron Collider Run II start and when is it expected to end?",
+    "references": [
+      "The Tevatron Collider Run II started in March 2002 and is expected to continue until the end of this decade."
+    ]
+  },
+  {
+    "id": "91c198d5820bfba5caf396532a0b30a531e9d09a7a9005a4",
+    "query": "What kind of ultracold neutral plasmas does this study focus on?",
+    "references": [
+      "A subset that form via kinetic rate processes from state-selected Rydberg gases."
+    ]
+  },
+  {
+    "id": "6b35731428ea6d9b480338b90572d21690c2fbb89ebba249",
+    "query": "What is the potential of SNNs in modeling the visual system?",
+    "references": [
+      "SNNs have the potential to better model and explain the functional hierarchy and mechanisms of the visual system."
+    ]
+  },
+  {
+    "id": "daa4eb9d8b28a987b1c2c049200634cdc510636b19a64ccd",
+    "query": "How many experiments were demonstrated to test the capabilities of the controller?",
+    "references": [
+      "5."
+    ]
+  },
+  {
+    "id": "3c8e9fef2eae8f49aae38b7314a3425b99c3ca8b051e8293",
+    "query": "How can you level up in the early levels?",
+    "references": [
+      "Keep deploying and harvesting your bases to earn experience points and level up quickly."
+    ]
+  },
+  {
+    "id": "ed61bdde19a3446389e989c06ab4209f464f9484d42dbd1c",
+    "query": "What was the Buckeyes' record in their first game of the season?",
+    "references": [
+      "They won their first game with a score of 15-3."
+    ]
+  },
+  {
+    "id": "e02f6a69d7b2a96a3aa6cd84a9189c2d552f6fb089f216e1",
+    "query": "What was Hugh H. Goodwin's rank in the United States Navy?",
+    "references": [
+      "Vice Admiral."
+    ]
+  },
+  {
+    "id": "191c14b84f0c8cdad3297f2bee552fb089178995208d7185",
+    "query": "What are the three teams that used conflict optimization in the challenge?",
+    "references": [
+      "Lasa, Gitastrophe, and Shadoks."
+    ]
+  },
+  {
+    "id": "f20114170ce5bb518f17950edb4ef828d980bba0bba01077",
+    "query": "When did Margaret Way start self-publishing her books as e-books?",
+    "references": [
+      "Margaret Way started self-publishing her books as e-books in 2013."
+    ]
+  },
+  {
+    "id": "ee53f01eb9a44de54723ab03918b7361f2eb630a35ce7b81",
+    "query": "What is the recommended space for using the VR headset?",
+    "references": [
+      "It is recommended to have at least a 2x2 meter space for using the VR headset."
+    ]
+  },
+  {
+    "id": "df53ff06fbc99dbae6bfe13a946420321d4542480eeb56f3",
+    "query": "How are thalassemias classified?",
+    "references": [
+      "According to the globin that is affected (alpha or beta)."
+    ]
+  },
+  {
+    "id": "71902c8027dca26b265f12709ec21224b5abe8b9ef5750fd",
+    "query": "Where is McPherson County located?",
+    "references": [
+      "McPherson County is located in the U.S. state of Kansas."
+    ]
+  },
+  {
+    "id": "2d48bbc2bd6052c5e67824752a9296cbbc26351616cd6d7e",
+    "query": "When did Born resign as chairperson of the CFTC?",
+    "references": [
+      "June 1, 1999."
+    ]
+  },
+  {
+    "id": "47b9dbb6d85243ffdaf6d95e842986b30d49d95913f21b6a",
+    "query": "How does the framework capture the reduced-order dynamics?",
+    "references": [
+      "By using a propagator in the latent space."
+    ]
+  },
+  {
+    "id": "94ccf4d54b36e7e9d4aa594a7bc426528630a5b8aff296a4",
+    "query": "When did the 2017 general election be held?",
+    "references": [
+      "23 September."
+    ]
+  }
+]

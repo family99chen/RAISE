@@ -1,0 +1,102 @@
+[
+  {
+    "id": "14445",
+    "content": "Trade happens when people agree to exchange goods and services. People give up something to get something else. Sometimes people barter, or directly exchange one good or service for another.\nHerman and Clara open their lunch boxes in the school cafeteria. Neither Herman nor Clara got everything that they wanted. The table below shows which items they each wanted:\n\nLook at the images of their lunches. Then answer the question below.\nHerman's lunch Clara's lunch",
+    "image_path": "/home/cz/ragsearch-update/datasets/ScienceQA/data/train/14445/image.png"
+  },
+  {
+    "id": "2529",
+    "content": "This picture was taken during a wildfire. A wildfire happens when a natural area catches fire and burns.",
+    "image_path": "/home/cz/ragsearch-update/datasets/ScienceQA/data/train/2529/image.png"
+  },
+  {
+    "id": "527",
+    "content": "The images below show two pairs of magnets. The magnets in different pairs do not affect each other. All the magnets shown are made of the same material.",
+    "image_path": "/home/cz/ragsearch-update/datasets/ScienceQA/data/train/527/image.png"
+  },
+  {
+    "id": "16533",
+    "content": "Read the text.\nFlowering plants are commonly divided into two groups: monocots and dicots. They are distinguished by the number of cotyledons their seeds have—a cotyledon is an undeveloped leaf inside the seed. Monocot seeds have one cotyledon while dicot seeds have two. You can also tell mature monocots and dicots apart based on their leaves and flowers. Monocots' petals occur in multiples of three (e.g., three or six), and their leaves have parallel veins; dicots' petals occur in multiples of four or five, and their leaves have branched veins.",
+    "image_path": "/home/cz/ragsearch-update/datasets/ScienceQA/data/train/16533/image.png"
+  },
+  {
+    "id": "6075",
+    "content": "The diagrams below show two pure samples of gas in identical closed, rigid containers. Each colored ball represents one gas particle. Both samples have the same number of particles.",
+    "image_path": "/home/cz/ragsearch-update/datasets/ScienceQA/data/train/6075/image.png"
+  },
+  {
+    "id": "5365",
+    "content": "Trade happens when people agree to exchange goods and services. People give up something to get something else. Sometimes people barter, or directly exchange one good or service for another.\nBill and Nora open their lunch boxes in the school cafeteria. Neither Bill nor Nora got everything that they wanted. The table below shows which items they each wanted:\n\nLook at the images of their lunches. Then answer the question below.\nBill's lunch Nora's lunch",
+    "image_path": "/home/cz/ragsearch-update/datasets/ScienceQA/data/train/5365/image.png"
+  },
+  {
+    "id": "4860",
+    "content": "People can use the engineering-design process to develop solutions to problems. One step in the process is testing if a potential solution meets the requirements of the design.\nThe passage below describes how the engineering-design process was used to test a solution to a problem. Read the passage. Then answer the question below.\n\nMeg and Tammy were making batches of concrete for a construction project. To make the concrete, they mixed together dry cement powder, gravel, and water. Then, they checked if each batch was firm enough using a test called a slump test.\nThey poured some of the fresh concrete into an upside-down metal cone. They left the concrete in the metal cone for 30 seconds. Then, they lifted the cone to see if the concrete stayed in a cone shape or if it collapsed. If the concrete in a batch collapsed, they would know the batch should not be used.\nFigure: preparing a concrete slump test.",
+    "image_path": "/home/cz/ragsearch-update/datasets/ScienceQA/data/train/4860/image.png"
+  },
+  {
+    "id": "3081",
+    "content": "The diagram below is a model of two solutions. Each yellow ball represents one particle of solute.",
+    "image_path": "/home/cz/ragsearch-update/datasets/ScienceQA/data/train/3081/image.png"
+  },
+  {
+    "id": "16423",
+    "content": "This organism is a pink skunk clownfish. Its scientific name is Amphiprion perideraion.",
+    "image_path": "/home/cz/ragsearch-update/datasets/ScienceQA/data/train/16423/image.png"
+  },
+  {
+    "id": "2287",
+    "content": "Two magnets are placed as shown.",
+    "image_path": "/home/cz/ragsearch-update/datasets/ScienceQA/data/train/2287/image.png"
+  },
+  {
+    "id": "15150",
+    "content": "In a group of American curl cats, some individuals have curled ears and others have straight ears. In this group, the gene for the ear type trait has two alleles. The allele for straight ears (e) is recessive to the allele for curled ears (E).\nThis Punnett square shows a cross between two American curl cats.",
+    "image_path": "/home/cz/ragsearch-update/datasets/ScienceQA/data/train/15150/image.png"
+  },
+  {
+    "id": "16517",
+    "content": "This organism is a Dalmatian pelican. Its scientific name is Pelecanus crispus.",
+    "image_path": "/home/cz/ragsearch-update/datasets/ScienceQA/data/train/16517/image.png"
+  },
+  {
+    "id": "19733",
+    "content": "Below is a food web from Shenandoah National Park, a forest ecosystem in Virginia.\nA food web models how the matter eaten by organisms moves through an ecosystem. The arrows in a food web represent how matter moves between organisms in an ecosystem.",
+    "image_path": "/home/cz/ragsearch-update/datasets/ScienceQA/data/train/19733/image.png"
+  },
+  {
+    "id": "12395",
+    "content": "The images below show two pairs of magnets. The magnets in different pairs do not affect each other. All the magnets shown are made of the same material.",
+    "image_path": "/home/cz/ragsearch-update/datasets/ScienceQA/data/train/12395/image.png"
+  },
+  {
+    "id": "1919",
+    "content": "The passage below describes an experiment. Read the passage and then follow the instructions below.\n\nEvan put one two-inch steel nail into each of six test tubes. He added water to three of the test tubes and vinegar to the other three. In each test tube, he completely covered the nail with the same volume of liquid. Evan checked the nails for rust at the same time every day. He recorded how many days it took each nail to become completely covered in rust. Then, he compared the number of days it took nails to rust in water to the number of days it took nails to rust in vinegar.\nFigure: a new steel nail on a pile of rusty nails.",
+    "image_path": "/home/cz/ragsearch-update/datasets/ScienceQA/data/train/1919/image.png"
+  },
+  {
+    "id": "13332",
+    "content": "Read the text.\nThere are two main types of plants: vascular and nonvascular. Vascular plants have tubes in their stems that bring water and nutrients to different parts of the plant. These tubes allow vascular plants to grow to be much larger, on average, than nonvascular plants. Nonvascular plants don't have these tubes. They are smaller, shorter, and often found near water, because water can't move through these plants as easily.",
+    "image_path": "/home/cz/ragsearch-update/datasets/ScienceQA/data/train/13332/image.png"
+  },
+  {
+    "id": "9490",
+    "content": "The images below show two pairs of magnets. The magnets in different pairs do not affect each other. All the magnets shown are made of the same material.",
+    "image_path": "/home/cz/ragsearch-update/datasets/ScienceQA/data/train/9490/image.png"
+  },
+  {
+    "id": "680",
+    "content": "Many s live in areas with cold, snowy winters. The 's feet are adapted for walking on snow and ice.\nFigure: brown bear.",
+    "image_path": "/home/cz/ragsearch-update/datasets/ScienceQA/data/train/680/image.png"
+  },
+  {
+    "id": "653",
+    "content": "This is a piece of peridotite. Peridotite is made mostly of the mineral olivine. Olivine gives the rock its greenish color.\nPeridotite forms through the cooling of melted rock. It is usually found deep below the earth's surface. Scientists think that a large part of the earth's mantle is made of peridotite.",
+    "image_path": "/home/cz/ragsearch-update/datasets/ScienceQA/data/train/653/image.png"
+  },
+  {
+    "id": "2050",
+    "content": "Figure: Monongahela National Forest.\nThe Monongahela National Forest is a temperate deciduous forest ecosystem in eastern West Virginia.",
+    "image_path": "/home/cz/ragsearch-update/datasets/ScienceQA/data/train/2050/image.png"
+  }
+]
