@@ -221,6 +221,265 @@ results = run_algorithms(
 
 ---
 
+## API Reference
+
+All public functions are available via a single import:
+
+```python
+from raisex.api.public import (
+    find_search_space,
+    check_config_valid,
+    evaluate_rag,
+    evaluate_rag_multimodal,
+    run_algorithms,
+)
+```
+
+### `find_search_space`
+
+Retrieve the full hyper-parameter search space, including all selectable values, prompt templates, and a ready-to-use YAML template.
+
+```python
+space = find_search_space(config_path=None, multimodal=False)
+```
+
+| Parameter | Type | Default | Description |
+|:----------|:-----|:--------|:------------|
+| `config_path` | `str \| None` | `None` | Path to search space YAML. If `None`, resolves from env var `RAGSEARCH_CONFIG` or default `configs/search_space/text.yaml` |
+| `multimodal` | `bool` | `False` | If `True`, use multimodal search space schema |
+
+**Returns:** `Dict[str, Any]`
+
+| Key | Type | Description |
+|:----|:-----|:------------|
+| `description` | `list[str]` | Human-readable description of the search space and its constraints |
+| `search_space` | `dict` | Complete search space definition with all allowed values per component |
+| `prompt_templates` | `dict` | Available prompt templates (keyed by ID) |
+| `selection_template_text` | `str` | A ready-to-use YAML template string with default selections |
+| `response_format` | `dict` | Expected response format hint |
+
+<details>
+<summary><b>Example</b></summary>
+
+```python
+space = find_search_space()
+print(space["search_space"]["retrieve"])
+# {'model_url': ['models/all-MiniLM-L6-v2'], 'topk': [1, 3, 5], ...}
+
+print(space["selection_template_text"])
+# rewriter:
+#   model_url: "http://localhost:9000/v1"
+#   prompt_template_id: "1"
+# chunking:
+#   chunk_size: 2048
+# ...
+```
+
+</details>
+
+---
+
+### `check_config_valid`
+
+Validate a user-provided selection YAML against the search space schema. Returns whether the config is valid and a list of error messages if not.
+
+```python
+result = check_config_valid(config_path, multimodal=False)
+```
+
+| Parameter | Type | Default | Description |
+|:----------|:-----|:--------|:------------|
+| `config_path` | `str` | *(required)* | Path to the selection YAML file to validate |
+| `multimodal` | `bool` | `False` | If `True`, validate against multimodal schema |
+
+**Returns:** `Dict[str, Any]`
+
+| Key | Type | Description |
+|:----|:-----|:------------|
+| `is_valid` | `bool` | `True` if the config passes all validation checks |
+| `errors` | `list[str]` | List of validation error messages (empty if valid) |
+
+<details>
+<summary><b>Example</b></summary>
+
+```python
+result = check_config_valid("configs/demo.yaml")
+if result["is_valid"]:
+    print("Config is valid!")
+else:
+    for err in result["errors"]:
+        print(f"  Error: {err}")
+```
+
+</details>
+
+---
+
+### `evaluate_rag` / `evaluate_rag_multimodal`
+
+Run a full RAG pipeline (chunking → retrieval → reranking → generation → evaluation) with a given configuration and return metrics.
+
+```python
+result = evaluate_rag(qa_json_path, corpus_json_path, config_path, eval_mode="both")
+result = evaluate_rag_multimodal(qa_json_path, corpus_json_path, config_path, eval_mode="both")
+```
+
+| Parameter | Type | Default | Description |
+|:----------|:-----|:--------|:------------|
+| `qa_json_path` | `str` | *(required)* | Path to QA dataset JSON (list of `{query, references}`) |
+| `corpus_json_path` | `str` | *(required)* | Path to corpus JSON (list of `{id, content}`) |
+| `config_path` | `str` | *(required)* | Path to selection YAML with chosen hyper-parameters |
+| `eval_mode` | `str` | `"both"` | Evaluation mode: `"avg"`, `"per_item"`, or `"both"` |
+
+**Returns:** `Dict[str, Any]`
+
+| Key | Type | Description |
+|:----|:-----|:------------|
+| `eval_report` | `dict` | Evaluation report containing `metrics` (aggregated scores) and `per_item` (per-query scores) |
+| `outputs` | `list[dict]` | Per-query pipeline outputs including `answer`, retrieved contexts, etc. |
+| `chunking` | `dict` | Chunking metadata |
+
+If the config is invalid, returns `{"error": "invalid_config", "errors": [...]}` instead.
+
+<details>
+<summary><b>Example</b></summary>
+
+```python
+result = evaluate_rag(
+    qa_json_path="data/datasets/hotpotqa/qa.json",
+    corpus_json_path="data/datasets/hotpotqa/corpus.json",
+    config_path="configs/demo.yaml",
+    eval_mode="both",
+)
+
+if "error" in result:
+    print("Config invalid:", result["errors"])
+else:
+    metrics = result["eval_report"]["metrics"]
+    print(f"F1: {metrics.get('F1')}, ROUGE-L: {metrics.get('ROUGE-L')}")
+```
+
+</details>
+
+---
+
+### `run_algorithms`
+
+Run one or more search algorithms as subprocesses and collect their results.
+
+```python
+results = run_algorithms(
+    qa_json_path, corpus_json_path, config_path,
+    algorithms=None, eval_mode="both", score_weights="", extra_args=None, cwd=None,
+)
+```
+
+| Parameter | Type | Default | Description |
+|:----------|:-----|:--------|:------------|
+| `qa_json_path` | `str` | *(required)* | Path to QA dataset JSON |
+| `corpus_json_path` | `str` | *(required)* | Path to corpus JSON |
+| `config_path` | `str` | *(required)* | Path to algorithm config YAML |
+| `algorithms` | `list[str] \| None` | `None` | Algorithm module names. If `None`, runs all 13 default algorithms |
+| `eval_mode` | `str` | `"both"` | Evaluation mode |
+| `score_weights` | `str` | `""` | Composite score weights (e.g. `"llmaaj1.0,bertf12.0,rougel1.5"`) |
+| `extra_args` | `dict[str, list[str]] \| None` | `None` | Per-algorithm extra CLI args |
+| `cwd` | `str \| None` | `None` | Working directory for subprocess execution |
+
+**Returns:** `Dict[str, Any]`
+
+| Key | Type | Description |
+|:----|:-----|:------------|
+| `results` | `list[dict]` | Per-algorithm results, each containing `algorithm`, `returncode`, `stdout`, `stderr`, `cmd` |
+
+---
+
+## Writing Custom Algorithms
+
+RAISE is designed so you can easily write your own search algorithm. Your algorithm samples configurations from the search space, calls `evaluate_rag` to score them, and tracks the best result.
+
+### Step 1: Import the environment functions
+
+```python
+from raisex.core.evaluation_service import evaluate_rag, evaluate_rag_multimodal
+from raisex.api.public import find_search_space, check_config_valid
+```
+
+### Step 2: Get the search space
+
+```python
+space = find_search_space("configs/search_space/text.yaml")
+search_space = space["search_space"]
+
+# search_space is a nested dict, e.g.:
+# {
+#   "rewriter":  {"model_url": [...], "prompt_template_id": ["1","2","3"]},
+#   "chunking":  {"chunk_size": [512, 1024, 2048], "chunk_overlap": [0, 128]},
+#   "retrieve":  {"model_url": [...], "topk": [1,3,5,10], "bm25_weight": [0.0, 0.25, 0.5]},
+#   "reranker":  {"model_url": [...], "topk": [1,3,5]},
+#   "pruner":    {"model_url": [...], "prompt_template_id": [...]},
+#   "generator": {"model_url": [...]},
+# }
+```
+
+### Step 3: Sample a configuration and write it to YAML
+
+```python
+import random, yaml, tempfile
+
+def sample_config(search_space):
+    config = {}
+    for component, params in search_space.items():
+        config[component] = {}
+        for param, values in params.items():
+            config[component][param] = random.choice(values)
+    return config
+
+config = sample_config(search_space)
+
+# Write to a temporary YAML file
+with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
+    yaml.safe_dump(config, f)
+    config_path = f.name
+```
+
+### Step 4: Validate and evaluate
+
+```python
+# Optional: validate before evaluation
+check = check_config_valid(config_path)
+assert check["is_valid"], check["errors"]
+
+# Evaluate the configuration
+result = evaluate_rag(
+    qa_json_path="data/datasets/triviaqa/qa.json",
+    corpus_json_path="data/datasets/triviaqa/corpus.json",
+    config_path=config_path,
+    eval_mode="avg",
+)
+
+metrics = result["eval_report"]["metrics"]
+score = metrics.get("F1", 0.0)
+print(f"Score: {score}")
+```
+
+### Step 5: Loop and optimize
+
+```python
+best_score = -1
+best_config = None
+
+for trial in range(100):
+    config = sample_config(search_space)
+    # ... write to YAML, evaluate, track best ...
+    if score > best_score:
+        best_score = score
+        best_config = config
+```
+
+> Refer to the built-in algorithms under `src/raisex/search/algorithms/` for complete, production-ready examples including argument parsing, progress tracking, and result reporting.
+
+---
+
 ## Repository Layout
 
 ```
