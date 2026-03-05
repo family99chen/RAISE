@@ -619,37 +619,48 @@ def getupperbound_external(
 
 
 def main() -> None:
-    base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
-    selection_path = os.path.join(base_dir, "configs", "demo2.yaml")
-    data_json_path = '/home/cz/ragsearch-jane/data/datasets/triviaqa/corpus.json'
-    queries = [
-        "I am a businessperson. What are OpenAI's main products?",
-        "Who is Justin's mother?",
-        "What is David's profession?",
-    ]
-    references_list = [
-        ["OpenAI's main products include ChatGPT, DALL-E, Codex, and the API."],
-        ["Justin's mother is David."],
-        ["David is a doctor."],
-    ]
+    import argparse
+
+    parser = argparse.ArgumentParser(description="Run text RAG pipeline batch evaluation.")
+    parser.add_argument("--qa_json", required=True, help="Path to QA JSON/JSONL file.")
+    parser.add_argument("--corpus_json", required=True, help="Path to corpus JSON file.")
+    parser.add_argument("--config_yaml", required=True, help="Path to pipeline config YAML.")
+    parser.add_argument(
+        "--eval_mode", default="both", choices=["avg", "per_item", "both"],
+    )
+    parser.add_argument("--debug_dump", action="store_true")
+    args = parser.parse_args()
+
+    qa_items = _load_json(args.qa_json)
+    queries: List[str] = []
+    references_list: List[List[str]] = []
+    for item in qa_items:
+        query = item.get("query") or item.get("question")
+        queries.append("" if query is None else str(query))
+        refs = item.get("references") or item.get("answers") or item.get("reference")
+        if refs is None:
+            references_list.append([])
+        elif isinstance(refs, list):
+            references_list.append([str(r) for r in refs])
+        else:
+            references_list.append([str(refs)])
+
     result = asyncio.run(
         run_batch_async(
             queries=queries,
-            selection_path=selection_path,
-            data_json_path=data_json_path,
+            selection_path=args.config_yaml,
+            data_json_path=args.corpus_json,
             answers_list=None,
             references_list=references_list,
-            eval_mode="both",
-            debug_dump=False,
+            eval_mode=args.eval_mode,
+            debug_dump=args.debug_dump,
         )
     )
-    if result.get("debug_dump") is not None:
+    if args.debug_dump and result.get("debug_dump") is not None:
         print("chroma_debug_dump:")
         print(result["debug_dump"])
-    print("batch_outputs:")
-    #print(result["outputs"])
     print("eval_report:")
-    print(result["report"])
+    print(json.dumps(result.get("report", {}), ensure_ascii=False, indent=2))
 
 
 if __name__ == "__main__":

@@ -181,6 +181,12 @@ pip install -e .
 ```
 
 ### Evaluate a RAG Configuration
+
+The last argument is `eval_mode`:
+- **`avg`** — aggregated metrics only (compact, used by search algorithms)
+- **`per_item`** — per-query scores only (for debugging individual questions)
+- **`both`** — both aggregated + per-query (default, most informative)
+
 ```bash
 # Text evaluation
 python -m raisex.cli.eval_cli \
@@ -344,13 +350,21 @@ result = evaluate_rag_multimodal(qa_json_path, corpus_json_path, config_path, ev
 | `qa_json_path` | `str` | *(required)* | Path to QA dataset JSON (list of `{query, references}`) |
 | `corpus_json_path` | `str` | *(required)* | Path to corpus JSON (list of `{id, content}`) |
 | `config_path` | `str` | *(required)* | Path to selection YAML with chosen hyper-parameters |
-| `eval_mode` | `str` | `"both"` | Evaluation mode: `"avg"`, `"per_item"`, or `"both"` |
+| `eval_mode` | `str` | `"both"` | Evaluation mode: `"avg"`, `"per_item"`, or `"both"` (see below) |
+
+**`eval_mode` options:**
+
+| Value | Description |
+|:------|:------------|
+| `"avg"` | Returns only aggregated metrics averaged across all QA pairs (e.g. `ExactMatch=0.65, F1=0.72, ...`). Lightweight and sufficient for algorithm search where only the overall score matters. |
+| `"per_item"` | Returns only per-query scores — a list where each entry contains individual metric scores, LLM-as-a-Judge reasoning, and the corresponding answer/references for that question. |
+| `"both"` | Returns both aggregated metrics **and** per-query details. Use this when you need the overall score as well as the ability to inspect individual predictions. |
 
 **Returns:** `Dict[str, Any]`
 
 | Key | Type | Description |
 |:----|:-----|:------------|
-| `eval_report` | `dict` | Evaluation report containing `metrics` (aggregated scores) and `per_item` (per-query scores) |
+| `eval_report` | `dict` | Evaluation report containing `metrics` (aggregated scores) and/or `per_item` (per-query scores), depending on `eval_mode` |
 | `outputs` | `list[dict]` | Per-query pipeline outputs including `answer`, retrieved contexts, etc. |
 | `chunking` | `dict` | Chunking metadata |
 

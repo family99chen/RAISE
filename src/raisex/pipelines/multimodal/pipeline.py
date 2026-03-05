@@ -731,56 +731,45 @@ def getupperbound_external(
 
 
 def main() -> None:
-    base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
-    selection_path = os.path.join(base_dir, "configs", "demo3.yaml")
+    import argparse
 
-    question = (
-        "Identify the question that Tom and Justin's experiment can best answer.\n"
-        "Choices:\n"
-        "1) Do ping pong balls stop rolling along the ground sooner after being launched from "
-        "a 30 degree angle or a 45 degree angle?\n"
-        "2) Do ping pong balls travel farther when launched from a 30 degree angle compared to "
-        "a 45 degree angle?"
+    parser = argparse.ArgumentParser(description="Run multimodal RAG pipeline batch evaluation.")
+    parser.add_argument("--qa_json", required=True, help="Path to QA JSON/JSONL file.")
+    parser.add_argument("--corpus_json", required=True, help="Path to corpus JSON file.")
+    parser.add_argument("--config_yaml", required=True, help="Path to pipeline config YAML.")
+    parser.add_argument(
+        "--eval_mode", default="both", choices=["avg", "per_item", "both"],
     )
-    context = (
-        "The passage below describes an experiment. Read the passage and then follow the instructions below.\n\n"
-        "Tom placed a ping pong ball in a catapult, pulled the catapult's arm back to a 45 degree angle, "
-        "and launched the ball. Then, Tom launched another ping pong ball, this time pulling the "
-        "catapult's arm back to a 30 degree angle. With each launch, his friend Justin measured the "
-        "distance between the catapult and the place where the ball hit the ground. Tom and Justin "
-        "repeated the launches with ping pong balls in four more identical catapults. They compared the "
-        "distances the balls traveled when launched from a 45 degree angle to the distances the balls "
-        "traveled when launched from a 30 degree angle.\nFigure: a catapult for launching ping pong balls."
-    )
-    image_path = "/home/cz/ragsearch-update/data/datasets/ScienceQA/data/train/2/image.png"
-    answer = (
-        "Do ping pong balls travel farther when launched from a 30 degree angle compared to a 45 degree angle?"
-    )
+    parser.add_argument("--debug_dump", action="store_true")
+    args = parser.parse_args()
 
-    corpus = [{"id": "demo-1", "content": context, "image_path": image_path}]
-    fd, data_json_path = tempfile.mkstemp(prefix="multimodal_demo_", suffix=".json")
-    os.close(fd)
-    with open(data_json_path, "w", encoding="utf-8") as handle:
-        json.dump(corpus, handle, ensure_ascii=False, indent=2)
+    qa_items = _load_json(args.qa_json)
+    queries: List[str] = []
+    references_list: List[List[str]] = []
+    for item in qa_items:
+        query = item.get("query") or item.get("question")
+        queries.append("" if query is None else str(query))
+        refs = item.get("references") or item.get("answers") or item.get("reference")
+        if refs is None:
+            references_list.append([])
+        elif isinstance(refs, list):
+            references_list.append([str(r) for r in refs])
+        else:
+            references_list.append([str(refs)])
 
-    queries = [question]
-    references_list = [[answer]]
     result = asyncio.run(
         run_batch_async(
             queries=queries,
-            selection_path=selection_path,
-            data_json_path=data_json_path,
+            selection_path=args.config_yaml,
+            data_json_path=args.corpus_json,
             answers_list=None,
             references_list=references_list,
-            eval_mode="both",
-            debug_dump=False,
+            eval_mode=args.eval_mode,
+            debug_dump=args.debug_dump,
         )
     )
-    os.remove(data_json_path)
-    print("batch_outputs:")
-    print(result.get("outputs"))
     print("eval_report:")
-    print(result.get("report"))
+    print(json.dumps(result.get("report", {}), ensure_ascii=False, indent=2))
 
 
 if __name__ == "__main__":
