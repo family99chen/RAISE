@@ -78,13 +78,14 @@ def build_chroma_db(
 
         if persist_dir:
             os.makedirs(persist_dir, exist_ok=True)
+            done_marker = os.path.join(persist_dir, "_build_complete")
             client = chromadb.PersistentClient(path=persist_dir)
             collection = client.get_or_create_collection(
                 name="chunks",
                 embedding_function=embedding_fn,
             )
             existing = collection.count()
-            if existing > 0:
+            if existing > 0 and os.path.isfile(done_marker):
                 return {
                     "client": client,
                     "collection": collection,
@@ -93,6 +94,12 @@ def build_chroma_db(
                     "debug_dump": None,
                     "from_cache": True,
                 }
+            if existing > 0:
+                client.delete_collection(name="chunks")
+                collection = client.get_or_create_collection(
+                    name="chunks",
+                    embedding_function=embedding_fn,
+                )
         else:
             client = chromadb.Client()
             try:
@@ -126,6 +133,10 @@ def build_chroma_db(
                     documents=docs[start:end],
                     metadatas=metadatas[start:end],
                 )
+
+        if persist_dir:
+            with open(done_marker, "w") as _f:
+                _f.write(str(len(ids)))
 
         debug_dump_data = None
         if debug_dump:

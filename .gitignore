@@ -38,3 +38,5 @@ experiments/run_text_benchmarks.py
 # Environment
 .env
 .env.local
+
+.outputlog.log
