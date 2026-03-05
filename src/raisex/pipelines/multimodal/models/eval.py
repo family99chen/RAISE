@@ -528,7 +528,9 @@ def evaluate_report(
     max_workers = _get_eval_max_workers()
 
     per_item: List[Dict[str, Any]] = []
-    if mode in {"per_item", "both"}:
+    need_per_item = mode in {"per_item", "both"}
+    need_llmaaj = _is_metric_enabled("LLMAAJ", eval_cfg) and llmaaj_cfg
+    if need_per_item or need_llmaaj:
         indexed = list(enumerate(zip(queries or ["" for _ in preds], preds, refs_list)))
         results: List[Optional[Dict[str, Any]]] = [None] * len(indexed)
         try:
