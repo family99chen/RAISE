@@ -187,13 +187,13 @@ pip install -e .
 python -m raisex.cli.eval_cli \
   data/datasets/triviaqa/qa.json \
   data/datasets/triviaqa/corpus.json \
-  configs/demo.yaml both
+  configs/demo.yaml
 
 # Multimodal evaluation
 python -m raisex.cli.eval_cli multimodal \
   data/datasets/scienceqa/qa.json \
   data/datasets/scienceqa/corpus.json \
-  configs/demo.yaml both
+  configs/demo.yaml
 ```
 
 ### Run Hyper-Parameter Search
