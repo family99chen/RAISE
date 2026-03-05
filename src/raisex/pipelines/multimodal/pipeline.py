@@ -16,7 +16,7 @@ except Exception:
 
 from raisex.pipelines.multimodal.models.chunking import build_chroma_db, build_chroma_db_async
 from raisex.pipelines.multimodal.models.clip import build_clip_chroma_db
-from raisex.pipelines.multimodal.models.eval import clear_eval_cache, evaluate_report
+from raisex.pipelines.multimodal.models.eval import evaluate_report
 from raisex.pipelines.multimodal.models.generator import (
     generate_answer,
     generate_answer_async,
@@ -26,7 +26,6 @@ from raisex.pipelines.multimodal.models.multimodalretreiver import (
     retrieve_images_async,
 )
 from raisex.pipelines.multimodal.models.reranker import (
-    clear_reranker_cache,
     rerank,
     rerank_async,
 )
@@ -37,6 +36,24 @@ try:
     import torch
 except Exception:
     torch = None
+
+
+_CHROMA_CACHE_DIR = os.environ.get(
+    "RAISEX_CHROMA_CACHE_DIR",
+    os.path.join(os.getcwd(), ".chroma_cache"),
+)
+
+_CHROMA_MEM_CACHE: Dict[tuple, Dict[str, Any]] = {}
+
+
+def _compute_persist_dir(
+    data_json_path: str, model_url: str, chunk_size: Any, chunk_overlap: int,
+) -> str:
+    dataset = os.path.basename(os.path.dirname(os.path.abspath(data_json_path)))
+    model_short = os.path.basename(model_url.rstrip("/"))
+    cs = chunk_size if chunk_size is not None else "none"
+    dir_name = f"{dataset}__{model_short}__cs{cs}_co{chunk_overlap}"
+    return os.path.join(_CHROMA_CACHE_DIR, dir_name)
 
 
 def _debug(msg: str) -> None:
@@ -252,16 +269,32 @@ async def run_chunking_stage_async(
             chunk_size = int(chunking_cfg.get("chunk_size", 512))
             chunk_overlap = int(chunking_cfg.get("chunk_overlap", 64))
 
+        cache_key = (data_json_path, model_url, chunk_size, chunk_overlap)
+        cached = _CHROMA_MEM_CACHE.get(cache_key)
+        if cached is not None:
+            return cached
+
+        persist_dir = _compute_persist_dir(
+            data_json_path, model_url, chunk_size, chunk_overlap,
+        )
         records = _load_json(data_json_path)
-        collection_name = f"ragsearch_{uuid.uuid4().hex}"
-        return await build_chroma_db_async(
+        result = await build_chroma_db_async(
             records=records,
             embedding_model_path=model_url,
             chunk_size=chunk_size,
             chunk_overlap=chunk_overlap,
-            collection_name=collection_name,
             debug_dump=debug_dump,
+            persist_dir=persist_dir,
         )
+
+        if result.get("client") is not None:
+            if result.get("from_cache"):
+                print(f"[chroma] cache hit  : {persist_dir}", flush=True)
+            else:
+                print(f"[chroma] cache built: {persist_dir}", flush=True)
+            _CHROMA_MEM_CACHE[cache_key] = result
+
+        return result
     except Exception:
         return {"client": None, "collection": None, "num_chunks": 0, "debug_dump": None}
 
@@ -599,20 +632,6 @@ async def run_batch_async(
             "pipeline_total_time_seconds": batch_elapsed_seconds,
         }
     finally:
-        if client is not None and collection_name:
-            try:
-                client.delete_collection(name=collection_name)
-            except Exception:
-                pass
-        clip_client = (clip_index or {}).get("client")
-        clip_collection_name = (clip_index or {}).get("collection_name")
-        if clip_client is not None and clip_collection_name:
-            try:
-                clip_client.delete_collection(name=clip_collection_name)
-            except Exception:
-                pass
-        clear_eval_cache()
-        clear_reranker_cache()
         if torch and torch.cuda.is_available():
             try:
                 torch.cuda.empty_cache()

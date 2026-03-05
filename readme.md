@@ -536,6 +536,54 @@ raise/
 
 ---
 
+## Retrieval Cache
+
+RAISE caches ChromaDB embedding indexes to disk so that repeated evaluations with the same chunking configuration skip the expensive embedding computation.
+
+**Default location:** `.chroma_cache/` in the current working directory (typically the project root).
+
+```
+RAISE/
+└── .chroma_cache/
+    ├── triviaqa__all-MiniLM-L12-v2__cs256_co128/
+    ├── triviaqa__all-MiniLM-L12-v2__cs512_co192/
+    └── triviaqa__all-MiniLM-L6-v2__cs2048_co64/
+```
+
+Each subdirectory is named `{dataset}__{embedding_model}__cs{chunk_size}_co{chunk_overlap}` and contains a persistent ChromaDB index with pre-computed embeddings. The cache key is determined by four parameters:
+
+| Parameter | Source |
+|:----------|:-------|
+| dataset | Parent directory of the corpus JSON (e.g. `triviaqa`) |
+| embedding_model | Basename of the retrieval model path |
+| chunk_size | From the chunking config |
+| chunk_overlap | From the chunking config |
+
+**Cache behavior:**
+- **First encounter** of a chunking configuration: builds the index and saves to disk (~30–50s depending on corpus size)
+- **Subsequent runs** with the same configuration: loads from disk instantly (~1–2s)
+- Within a single process, loaded indexes are also held in memory to avoid re-opening the same SQLite database
+
+**Clearing the cache:**
+
+```bash
+# Remove all cached indexes
+rm -rf .chroma_cache/
+
+# Remove a specific configuration
+rm -rf .chroma_cache/triviaqa__all-MiniLM-L12-v2__cs256_co128/
+```
+
+**Custom cache location:** set the `RAISEX_CHROMA_CACHE_DIR` environment variable.
+
+```bash
+RAISEX_CHROMA_CACHE_DIR=/tmp/my_cache python -m raisex.cli.algo_cli ...
+```
+
+> The `.chroma_cache/` directory is included in `.gitignore` by default.
+
+---
+
 ## Entry Points
 
 | Interface | Command / Import | Description |

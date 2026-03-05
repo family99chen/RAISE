@@ -1,17 +1,35 @@
 import asyncio
 import json
-from typing import Any, Dict, Iterable, List, Tuple
+import os
+from typing import Any, Dict, Iterable, List, Optional, Tuple
 
 try:
     import torch
 except Exception:
     torch = None
 
+_EMBEDDING_FN_CACHE: Dict[Tuple[str, str], Any] = {}
+
 
 def _prefer_device() -> str:
     if torch and torch.cuda.is_available():
         return "cuda"
     return "cpu"
+
+
+def _get_embedding_fn(model_path: str, device: str) -> Any:
+    key = (model_path, device)
+    cached = _EMBEDDING_FN_CACHE.get(key)
+    if cached is not None:
+        return cached
+    from chromadb.utils import embedding_functions
+
+    fn = embedding_functions.SentenceTransformerEmbeddingFunction(
+        model_name=model_path,
+        device=device,
+    )
+    _EMBEDDING_FN_CACHE[key] = fn
+    return fn
 
 
 def _chunk_text(text: str, chunk_size: int, overlap: int) -> List[str]:
@@ -41,6 +59,9 @@ def _validate_records(records: Iterable[Dict[str, Any]]) -> List[Dict[str, Any]]
     return normalized
 
 
+_CHROMA_MAX_BATCH = 5000
+
+
 def build_chroma_db(
     records: Iterable[Dict[str, Any]],
     embedding_model_path: str,
@@ -48,28 +69,45 @@ def build_chroma_db(
     chunk_overlap: int = 0,
     collection_name: str = "ragsearch",
     debug_dump: bool = False,
+    persist_dir: Optional[str] = None,
 ):
     try:
         import chromadb
-        from chromadb.utils import embedding_functions
+
+        device = _prefer_device()
+        embedding_fn = _get_embedding_fn(embedding_model_path, device)
+
+        if persist_dir:
+            os.makedirs(persist_dir, exist_ok=True)
+            client = chromadb.PersistentClient(path=persist_dir)
+            collection = client.get_or_create_collection(
+                name="chunks",
+                embedding_function=embedding_fn,
+            )
+            existing = collection.count()
+            if existing > 0:
+                return {
+                    "client": client,
+                    "collection": collection,
+                    "collection_name": "chunks",
+                    "num_chunks": existing,
+                    "debug_dump": None,
+                    "error": None,
+                    "error_type": None,
+                    "from_cache": True,
+                }
+        else:
+            client = chromadb.Client()
+            try:
+                client.delete_collection(name=collection_name)
+            except Exception:
+                pass
+            collection = client.get_or_create_collection(
+                name=collection_name,
+                embedding_function=embedding_fn,
+            )
 
         records = _validate_records(records)
-        device = _prefer_device()
-        embedding_fn = embedding_functions.SentenceTransformerEmbeddingFunction(
-            model_name=embedding_model_path,
-            device=device,
-        )
-
-        client = chromadb.Client()
-        try:
-            client.delete_collection(name=collection_name)
-        except Exception:
-            pass
-        collection = client.get_or_create_collection(
-            name=collection_name,
-            embedding_function=embedding_fn,
-        )
-
         ids: List[str] = []
         docs: List[str] = []
         metadatas: List[Dict[str, Any]] = []
@@ -84,7 +122,6 @@ def build_chroma_db(
                 metadatas.append({"source_id": record["id"], "chunk_index": idx})
 
         if ids:
-            _CHROMA_MAX_BATCH = 5000
             for start in range(0, len(ids), _CHROMA_MAX_BATCH):
                 end = start + _CHROMA_MAX_BATCH
                 collection.add(
@@ -99,14 +136,16 @@ def build_chroma_db(
                 include=["embeddings", "documents", "metadatas"]
             )
 
+        col_name = "chunks" if persist_dir else collection_name
         return {
             "client": client,
             "collection": collection,
-            "collection_name": collection_name,
+            "collection_name": col_name,
             "num_chunks": len(ids),
             "debug_dump": debug_dump_data,
             "error": None,
             "error_type": None,
+            "from_cache": False,
         }
     except Exception as exc:
         return {
@@ -127,6 +166,7 @@ async def build_chroma_db_async(
     chunk_overlap: int = 0,
     collection_name: str = "ragsearch",
     debug_dump: bool = False,
+    persist_dir: Optional[str] = None,
 ):
     return await asyncio.to_thread(
         build_chroma_db,
@@ -136,4 +176,5 @@ async def build_chroma_db_async(
         chunk_overlap=chunk_overlap,
         collection_name=collection_name,
         debug_dump=debug_dump,
+        persist_dir=persist_dir,
     )
