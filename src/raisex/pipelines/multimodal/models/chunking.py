@@ -83,7 +83,14 @@ def build_chroma_db(
                 metadatas.append({"source_id": record["id"], "chunk_index": idx})
 
         if ids:
-            collection.add(ids=ids, documents=docs, metadatas=metadatas)
+            _CHROMA_MAX_BATCH = 5000
+            for start in range(0, len(ids), _CHROMA_MAX_BATCH):
+                end = start + _CHROMA_MAX_BATCH
+                collection.add(
+                    ids=ids[start:end],
+                    documents=docs[start:end],
+                    metadatas=metadatas[start:end],
+                )
 
         debug_dump_data = None
         if debug_dump:
