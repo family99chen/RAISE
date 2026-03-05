@@ -1,7 +1,0 @@
-Plan: 4 datasets x 17 algorithms x 3 seeds = 204 runs
-Config: /home/cz/RAISE/configs/experiments/configforalgo_fullspace.yaml
-Output: /home/cz/RAISE/outputs-text-benchmarks
-
-
-[1/68] triviaqa / randomalgo
-  seed=42  running ...
