@@ -25,4 +25,6 @@ rag_search_space:
     model_url: ["http://localhost:9000/v1"]
 
 eval_metrics:
-  enabled: "F1,ROUGE-L,BLEU,METEOR"
+  enabled: "F1,ROUGE-L,BLEU,METEOR,LLMAAJ"
+  llmaaj:
+    model_url: "http://localhost:9000/v1"

@@ -29,6 +29,8 @@ outputs/
 outputs*/
 /models/
 algorithms/configforalgo.yaml
+configs/experiments/configforalgo_fullspace.yaml
+experiments/run_text_benchmarks.py
 
 # Environment
 .env

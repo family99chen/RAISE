@@ -355,6 +355,7 @@ def successive_halving_search(
     eta: int,
     seed: int,
     score_weights: Optional[Dict[str, float]] = None,
+    max_evals: Optional[int] = None,
 ) -> Dict[str, Any]:
     config = _load_yaml(config_path)
     search_space, algo_cfg, eval_metrics = _split_config(config)
@@ -449,6 +450,8 @@ def successive_halving_search(
                 "resource": resource,
             }
             trials.append(record)
+            if max_evals is not None and len(trials) >= max_evals:
+                break
             if score >= best_score:
                 best_score = score
                 best_config = json.loads(json.dumps(candidate))
@@ -460,6 +463,8 @@ def successive_halving_search(
             bar.close()
         if cleanup_path:
             os.remove(cleanup_path)
+        if max_evals is not None and len(trials) >= max_evals:
+            break
         if len(configs) <= 1:
             break
         round_scores.sort(key=lambda x: x[0], reverse=True)
@@ -524,6 +529,10 @@ def main() -> None:
         default="",
         help="Weighted metrics, e.g. 'bertf11,llmaaj2'.",
     )
+    parser.add_argument(
+        "--max_evals", type=int, default=None,
+        help="Unified max evaluations (overrides native budget param).",
+    )
     args = parser.parse_args()
 
     score_weights = _parse_score_weights(args.score_weights)
@@ -537,6 +546,7 @@ def main() -> None:
         eta=args.eta,
         seed=args.seed,
         score_weights=score_weights,
+        max_evals=args.max_evals,
     )
 
 

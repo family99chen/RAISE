@@ -1,4 +1,5 @@
 import argparse
+import math
 import os
 
 from raisex.search.algorithms.grpo import _parse_score_weights, rl_search
@@ -75,6 +76,10 @@ def main() -> None:
         default="",
         help="Weighted metrics, e.g. 'bertf11,llmaaj2'.",
     )
+    parser.add_argument(
+        "--max_evals", type=int, default=None,
+        help="Unified max evaluations (overrides native budget param).",
+    )
     args = parser.parse_args()
 
     score_weights = _parse_score_weights(args.score_weights)
@@ -92,6 +97,7 @@ def main() -> None:
         clip_ratio=args.clip_ratio,
         update_epochs=args.update_epochs,
         score_weights=score_weights,
+        max_evals=args.max_evals,
         algorithm_label="doctor_grpo",
         algorithm_variant="doctor_grpo",
     )

@@ -503,6 +503,10 @@ def main() -> None:
         default="",
         help="Weighted metrics, e.g. 'bertf11,llmaaj2'.",
     )
+    parser.add_argument(
+        "--max_evals", type=int, default=None,
+        help="Accepted for CLI compatibility; ignored by upperbound.",
+    )
     args = parser.parse_args()
 
     score_weights = _parse_score_weights(args.score_weights)

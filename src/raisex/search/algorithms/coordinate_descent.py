@@ -334,6 +334,7 @@ def coordinate_descent_search(
     max_rounds: int,
     seed: int,
     score_weights: Optional[Dict[str, float]] = None,
+    max_evals: Optional[int] = None,
 ) -> Dict[str, Any]:
     config = _load_yaml(config_path)
     search_space, algo_cfg, eval_metrics = _split_config(config)
@@ -352,6 +353,7 @@ def coordinate_descent_search(
         current = _deep_update(current, algo_cfg)
 
     trials: List[Dict[str, Any]] = []
+    budget_exhausted = False
     best_score: float = float("-inf")
     best_config: Dict[str, Any] = {}
 
@@ -370,7 +372,7 @@ def coordinate_descent_search(
             json.dump(snapshot, handle, ensure_ascii=False, indent=2)
 
     def run_trial(stage: str, selection: Dict[str, Any]) -> Tuple[float, Dict[str, Any]]:
-        nonlocal best_score, best_config
+        nonlocal best_score, best_config, budget_exhausted
         _sanitize_selection(selection)
         print(f"\n[coord-desc] trial={stage} selection={json.dumps(selection, ensure_ascii=False)}")
         score, payload = _evaluate_selection(
@@ -400,6 +402,8 @@ def coordinate_descent_search(
         _write_report_snapshot()
         if bar is not None:
             bar.update(1)
+        if max_evals is not None and len(trials) >= max_evals:
+            budget_exhausted = True
         return score, record
 
     current_score, _ = run_trial("init", json.loads(json.dumps(current)))
@@ -424,6 +428,8 @@ def coordinate_descent_search(
                 if score_off > best_candidate_score:
                     best_candidate_score = score_off
                     best_candidate = off_candidate
+                if budget_exhausted:
+                    break
 
             base_module = current.get(module)
             if not isinstance(base_module, dict):
@@ -440,6 +446,11 @@ def coordinate_descent_search(
                     if score > best_candidate_score:
                         best_candidate_score = score
                         best_candidate = candidate
+                    if budget_exhausted:
+                        break
+
+            if budget_exhausted:
+                break
 
             for key, value in params.items():
                 if pair_choices and key in {"model_url", "model_name"}:
@@ -458,12 +469,21 @@ def coordinate_descent_search(
                     if score > best_candidate_score:
                         best_candidate_score = score
                         best_candidate = candidate
+                    if budget_exhausted:
+                        break
+                if budget_exhausted:
+                    break
+
+            if budget_exhausted:
+                break
 
             if best_candidate_score > current_score:
                 current = best_candidate
                 current_score = best_candidate_score
                 improved = True
 
+        if budget_exhausted:
+            break
         if not improved:
             break
 
@@ -522,6 +542,10 @@ def main() -> None:
         default="",
         help="Weighted metrics, e.g. 'bertf11,llmaaj2'.",
     )
+    parser.add_argument(
+        "--max_evals", type=int, default=None,
+        help="Unified max evaluations (overrides native budget param).",
+    )
     args = parser.parse_args()
 
     score_weights = _parse_score_weights(args.score_weights)
@@ -534,6 +558,7 @@ def main() -> None:
         max_rounds=args.max_rounds,
         seed=args.seed,
         score_weights=score_weights,
+        max_evals=args.max_evals,
     )
 
 

@@ -135,7 +135,7 @@ def _run_one_algorithm(algorithm: str, passthrough_args: List[str], verbose: boo
     existing = env.get("PYTHONPATH", "")
     env["PYTHONPATH"] = f"{src_path}{os.pathsep}{existing}" if existing else src_path
 
-    completed = subprocess.run(cmd, capture_output=True, text=True, env=env)
+    completed = subprocess.run(cmd, stdout=subprocess.PIPE, text=True, env=env)
     report_payload = _load_json(report_path)
     metrics = _extract_metrics(report_payload)
 
@@ -156,7 +156,6 @@ def _run_one_algorithm(algorithm: str, passthrough_args: List[str], verbose: boo
     if verbose:
         result["report_path"] = report_path
         result["stdout"] = completed.stdout
-        result["stderr"] = completed.stderr
     else:
         try:
             os.remove(report_path)
@@ -167,12 +166,20 @@ def _run_one_algorithm(algorithm: str, passthrough_args: List[str], verbose: boo
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Run raise algorithms and summarize metrics")
+    parser = argparse.ArgumentParser(
+        description="Run RAISE algorithms and summarize metrics. "
+        "Extra args are forwarded to each algorithm subprocess.",
+    )
     group = parser.add_mutually_exclusive_group(required=True)
     group.add_argument("--algorithm", help="Single algorithm module name, e.g. randomalgo")
     group.add_argument(
         "--algorithms",
         help="Comma-separated algorithm module names, e.g. randomalgo,greedy",
+    )
+    parser.add_argument("--seed", type=int, default=None, help="Random seed forwarded to each algorithm.")
+    parser.add_argument(
+        "--max_evals", type=int, default=None,
+        help="Max evaluate_rag calls per algorithm.",
     )
     parser.add_argument(
         "--verbose",
@@ -180,6 +187,12 @@ def main() -> None:
         help="Include per-algorithm stdout/stderr and report path in output.",
     )
     args, unknown = parser.parse_known_args()
+
+    passthrough: List[str] = list(unknown)
+    if args.seed is not None:
+        passthrough.extend(["--seed", str(args.seed)])
+    if args.max_evals is not None:
+        passthrough.extend(["--max_evals", str(args.max_evals)])
 
     algorithms = _parse_algorithms(args.algorithm, args.algorithms)
     if not algorithms:
@@ -195,7 +208,7 @@ def main() -> None:
     any_failed = False
     results: List[Dict[str, Any]] = []
     for algorithm in algorithms:
-        entry, failed = _run_one_algorithm(algorithm, unknown, args.verbose)
+        entry, failed = _run_one_algorithm(algorithm, passthrough, args.verbose)
         results.append(entry)
         any_failed = any_failed or failed
 

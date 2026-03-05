@@ -495,6 +495,7 @@ def iterative_local_search(
     steps_per_restart: int,
     seed: int,
     score_weights: Optional[Dict[str, float]] = None,
+    max_evals: Optional[int] = None,
     ils_perturb_steps: Optional[int] = None,
     ils_local_steps: Optional[int] = None,
     ils_neighborhood_size: Optional[int] = None,
@@ -517,6 +518,7 @@ def iterative_local_search(
     best_score: float = float("-inf")
     best_config: Dict[str, Any] = {}
     step_idx = 0
+    budget_exhausted = False
 
     ils_cfg = algo_cfg if isinstance(algo_cfg, dict) else {}
     perturb_steps = max(1, int(ils_cfg.get("ils_perturb_steps", 2)))
@@ -580,6 +582,7 @@ def iterative_local_search(
     def _evaluate_and_record(
         selection: Dict[str, Any], restart_id: int, step_id: int, phase: str
     ) -> Tuple[float, Dict[str, Any]]:
+        nonlocal budget_exhausted
         candidate = _prepare_selection(selection, algo_cfg, eval_metrics)
         score, payload = _evaluate_selection(
             qa_json_path,
@@ -593,6 +596,8 @@ def iterative_local_search(
         if payload.get("error"):
             score = -1.0
         _write_record(restart_id, step_id, phase, score, payload, candidate)
+        if max_evals is not None and len(trials) >= max_evals:
+            budget_exhausted = True
         return score, candidate
 
     def _apply_mutations(selection: Dict[str, Any], count: int) -> Dict[str, Any]:
@@ -630,12 +635,16 @@ def iterative_local_search(
                 neighbor_score, neighbor_candidate = _evaluate_and_record(
                     neighbor, restart_id, step_idx, "local"
                 )
+                if budget_exhausted:
+                    break
                 if neighbor_score > best_score or (
                     accept_equal and neighbor_score == best_score and best_neighbor is None
                 ):
                     best_score = neighbor_score
                     best_neighbor = neighbor
                     best_candidate = neighbor_candidate
+            if budget_exhausted:
+                break
             if best_neighbor is None:
                 break
             if best_score > current_score or (
@@ -654,9 +663,13 @@ def iterative_local_search(
         current_score, current_candidate = _evaluate_and_record(
             current_selection, restart + 1, step_idx, "init"
         )
+        if budget_exhausted:
+            break
         current_selection, current_candidate, current_score = _local_search(
             current_selection, current_score, current_candidate, restart + 1
         )
+        if budget_exhausted:
+            break
 
         for _ in range(steps_per_restart):
             step_idx += 1
@@ -664,6 +677,8 @@ def iterative_local_search(
             perturbed_score, perturbed_candidate = _evaluate_and_record(
                 perturbed, restart + 1, step_idx, "perturb"
             )
+            if budget_exhausted:
+                break
             (
                 perturbed_selection,
                 perturbed_candidate,
@@ -671,12 +686,16 @@ def iterative_local_search(
             ) = _local_search(
                 perturbed, perturbed_score, perturbed_candidate, restart + 1
             )
+            if budget_exhausted:
+                break
             if perturbed_score > current_score or (
                 accept_equal and perturbed_score == current_score
             ):
                 current_selection = json.loads(json.dumps(perturbed_selection))
                 current_candidate = json.loads(json.dumps(perturbed_candidate))
                 current_score = perturbed_score
+        if budget_exhausted:
+            break
 
     if bar is not None:
         bar.close()
@@ -769,6 +788,10 @@ def main() -> None:
         dest="ils_accept_equal",
         help="Override ils_accept_equal=False.",
     )
+    parser.add_argument(
+        "--max_evals", type=int, default=None,
+        help="Unified max evaluations (overrides native budget param).",
+    )
     args = parser.parse_args()
 
     score_weights = _parse_score_weights(args.score_weights)
@@ -782,6 +805,7 @@ def main() -> None:
         steps_per_restart=args.steps_per_restart,
         seed=args.seed,
         score_weights=score_weights,
+        max_evals=args.max_evals,
         ils_perturb_steps=args.ils_perturb_steps,
         ils_local_steps=args.ils_local_steps,
         ils_neighborhood_size=args.ils_neighborhood_size,

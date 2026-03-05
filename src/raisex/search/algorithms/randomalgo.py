@@ -519,7 +519,13 @@ def main() -> None:
         default="",
         help="Weighted metrics, e.g. 'bertf11,llmaaj2'.",
     )
+    parser.add_argument(
+        "--max_evals", type=int, default=None,
+        help="Unified max evaluations (overrides native budget param).",
+    )
     args = parser.parse_args()
+    if args.max_evals is not None:
+        args.samples = args.max_evals
 
     score_weights = _parse_score_weights(args.score_weights)
     random_search(

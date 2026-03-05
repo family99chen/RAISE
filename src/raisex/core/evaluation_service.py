@@ -187,6 +187,8 @@ def run_algorithms(
     algorithms: Optional[List[str]] = None,
     eval_mode: str = "both",
     score_weights: str = "",
+    seed: Optional[int] = None,
+    max_evals: Optional[int] = None,
     extra_args: Optional[Dict[str, List[str]]] = None,
     cwd: Optional[str] = None,
 ) -> Dict[str, Any]:
@@ -222,6 +224,10 @@ def run_algorithms(
         ]
         if score_weights:
             cmd.extend(["--score_weights", score_weights])
+        if seed is not None:
+            cmd.extend(["--seed", str(seed)])
+        if max_evals is not None:
+            cmd.extend(["--max_evals", str(max_evals)])
         if extra_args and name in extra_args:
             cmd.extend(extra_args[name])
         env = os.environ.copy()

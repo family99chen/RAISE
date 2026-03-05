@@ -568,6 +568,7 @@ def rl_search(
     clip_ratio: float = 0.2,
     update_epochs: int = 2,
     score_weights: Optional[Dict[str, float]] = None,
+    max_evals: Optional[int] = None,
     algorithm_label: str = "grpo",
     algorithm_variant: str = "grpo",
 ) -> Dict[str, Any]:
@@ -740,6 +741,14 @@ def rl_search(
 
             _write_report_snapshot()
 
+            if max_evals is not None and len(trials) >= max_evals:
+                break
+
+        if max_evals is not None and len(trials) >= max_evals:
+            if bar:
+                bar.update(1)
+            break
+
         if elite_size > 0:
             for traj, reward in zip(trajectories, rewards):
                 elite_buffer.append({"reward": reward, "trajectory": traj})
@@ -873,6 +882,10 @@ def main() -> None:
         default="",
         help="Weighted metrics, e.g. 'bertf11,llmaaj2'.",
     )
+    parser.add_argument(
+        "--max_evals", type=int, default=None,
+        help="Unified max evaluations (overrides native budget param).",
+    )
     args = parser.parse_args()
 
     score_weights = _parse_score_weights(args.score_weights)
@@ -890,6 +903,7 @@ def main() -> None:
         clip_ratio=args.clip_ratio,
         update_epochs=args.update_epochs,
         score_weights=score_weights,
+        max_evals=args.max_evals,
         algorithm_label="grpo",
         algorithm_variant="grpo",
     )

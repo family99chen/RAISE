@@ -353,6 +353,7 @@ def greedy_search(
     eval_mode: str,
     report_path: str,
     score_weights: Optional[Dict[str, float]] = None,
+    max_evals: Optional[int] = None,
 ) -> Dict[str, Any]:
     config = _load_yaml(config_path)
     search_space, algo_cfg, eval_metrics = _split_config(config)
@@ -372,8 +373,11 @@ def greedy_search(
     trials: List[Dict[str, Any]] = []
     best_score: float = float("-inf")
     best_config: Dict[str, Any] = current
+    budget_exhausted = False
 
     total_steps = _count_greedy_steps(search_space, algo_cfg)
+    if max_evals is not None:
+        total_steps = min(total_steps, max_evals)
     bar = tqdm(total=total_steps, desc="greedy", unit="trial") if tqdm else None
 
     def _write_report_snapshot() -> None:
@@ -389,7 +393,10 @@ def greedy_search(
             json.dump(snapshot, handle, ensure_ascii=False, indent=2)
 
     def run_trial(stage: str, selection: Dict[str, Any]) -> Tuple[float, Dict[str, Any]]:
-        nonlocal best_score, best_config
+        nonlocal best_score, best_config, budget_exhausted
+        if max_evals is not None and len(trials) >= max_evals:
+            budget_exhausted = True
+            return float("-inf"), {}
         _sanitize_selection(selection)
         print(f"\n[greedy] trial={stage} selection={json.dumps(selection, ensure_ascii=False)}")
         score, payload = _evaluate_selection(
@@ -425,6 +432,8 @@ def greedy_search(
     module_order = ["rewriter", "chunking", "retrieve", "clip", "reranker", "pruner", "generator"]
 
     for module in module_order:
+        if budget_exhausted:
+            break
         params = search_space.get(module)
         if not isinstance(params, dict):
             continue
@@ -445,6 +454,8 @@ def greedy_search(
                 best_pair = None
                 best_pair_score = float("-inf")
                 for pair in pair_choices:
+                    if budget_exhausted:
+                        break
                     candidate = json.loads(json.dumps(current))
                     candidate.setdefault(module, {})
                     candidate[module]["model_url"] = pair[0]
@@ -461,6 +472,8 @@ def greedy_search(
                     current[module]["model_name"] = best_pair[1]
                     best_on_score = max(best_on_score, best_pair_score)
             for key, value in params.items():
+                if budget_exhausted:
+                    break
                 if pair_choices and key in {"model_url", "model_name"}:
                     continue
                 choices = _allowed_values(value)
@@ -472,6 +485,8 @@ def greedy_search(
                 best_val = None
                 best_val_score = float("-inf")
                 for choice in choices:
+                    if budget_exhausted:
+                        break
                     candidate = json.loads(json.dumps(current))
                     candidate.setdefault(module, {})
                     candidate[module][key] = choice
@@ -544,6 +559,12 @@ def main() -> None:
         default="",
         help="Weighted metrics, e.g. 'bertf11,llmaaj2'.",
     )
+    parser.add_argument(
+        "--max_evals",
+        type=int,
+        default=None,
+        help="Maximum number of evaluations before stopping. Default: unlimited.",
+    )
     args = parser.parse_args()
 
     qa_json_path = args.qa_json
@@ -559,6 +580,7 @@ def main() -> None:
         eval_mode,
         report_path,
         score_weights=score_weights,
+        max_evals=args.max_evals,
     )
 
 

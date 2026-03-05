@@ -55,6 +55,10 @@ def main() -> None:
         action="store_true",
         help="Use multimodal theoretical upperbound.",
     )
+    parser.add_argument(
+        "--max_evals", type=int, default=None,
+        help="Accepted for CLI compatibility; ignored by thupperbound.",
+    )
     args = parser.parse_args()
 
     if args.multimodal and args.config_yaml == default_config:

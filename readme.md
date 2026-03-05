@@ -182,11 +182,6 @@ pip install -e .
 
 ### Evaluate a RAG Configuration
 
-The last argument is `eval_mode`:
-- **`avg`** — aggregated metrics only (compact, used by search algorithms)
-- **`per_item`** — per-query scores only (for debugging individual questions)
-- **`both`** — both aggregated + per-query (default, most informative)
-
 ```bash
 # Text evaluation
 python -m raisex.cli.eval_cli \
@@ -202,20 +197,21 @@ python -m raisex.cli.eval_cli multimodal \
 ```
 
 ### Run Hyper-Parameter Search
+
 ```bash
 # Single algorithm
 python -m raisex.cli.algo_cli --algorithm greedy \
   --qa_json data/datasets/triviaqa/qa.json \
   --corpus_json data/datasets/triviaqa/corpus.json \
   --config_yaml configs/algorithms/default.yaml \
-  --eval_mode avg
+  --max_evals 30
 
 # Compare multiple algorithms
 python -m raisex.cli.algo_cli --algorithms randomalgo,greedy,tpe,simulated_annealing \
   --qa_json data/datasets/triviaqa/qa.json \
   --corpus_json data/datasets/triviaqa/corpus.json \
   --config_yaml configs/algorithms/default.yaml \
-  --eval_mode avg
+  --max_evals 50 --seed 42
 ```
 
 ### Python API
@@ -399,7 +395,8 @@ Run one or more search algorithms as subprocesses and collect their results.
 ```python
 results = run_algorithms(
     qa_json_path, corpus_json_path, config_path,
-    algorithms=None, eval_mode="both", score_weights="", extra_args=None, cwd=None,
+    algorithms=None, eval_mode="both", score_weights="",
+    seed=None, max_evals=None, extra_args=None, cwd=None,
 )
 ```
 
@@ -411,6 +408,8 @@ results = run_algorithms(
 | `algorithms` | `list[str] \| None` | `None` | Algorithm module names. If `None`, runs all 16 default algorithms |
 | `eval_mode` | `str` | `"both"` | Evaluation mode |
 | `score_weights` | `str` | `""` | Composite score weights (e.g. `"llmaaj1.0,bertf12.0,rougel1.5"`) |
+| `seed` | `int \| None` | `None` | Random seed forwarded to each algorithm |
+| `max_evals` | `int \| None` | `None` | Max `evaluate_rag` calls per algorithm (limits total evaluations, not rounds). If `None`, each algorithm runs with its own default budget |
 | `extra_args` | `dict[str, list[str]] \| None` | `None` | Per-algorithm extra CLI args |
 | `cwd` | `str \| None` | `None` | Working directory for subprocess execution |
 
