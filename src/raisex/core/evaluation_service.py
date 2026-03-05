@@ -18,13 +18,16 @@ from raisex.pipelines.text.pipeline import run_batch_async
 
 _DEFAULT_ALGORITHMS = [
     "cross_entropy",
+    "doctor_grpo",
     "randomalgo",
     "greedy",
     "grpo",
     "iterative_local_search",
     "mab_ts",
     "mab_ucb",
+    "ppo",
     "regularized_evolution",
+    "reinforce_pp",
     "simulated_annealing",
     "successive_halving",
     "tpe",

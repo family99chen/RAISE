@@ -436,6 +436,13 @@ class PolicyNetwork:
         clip_ratio: float,
         update_epochs: int,
         weights: Optional[List[float]] = None,
+        normalize_adv_std: bool = True,
+        center_adv: bool = True,
+        length_norm_mode: str = "per_trajectory",
+        use_importance_ratio: bool = True,
+        use_clip_objective: bool = True,
+        entropy_coeff: float = 0.0,
+        baseline: Optional[float] = None,
     ) -> None:
         if not rewards:
             return
@@ -444,20 +451,40 @@ class PolicyNetwork:
         weight_total = sum(weights)
         if weight_total <= 0:
             return
-        mean = sum(r * w for r, w in zip(rewards, weights)) / weight_total
-        variance = sum(
-            w * (r - mean) ** 2 for r, w in zip(rewards, weights)
-        ) / weight_total
-        std = math.sqrt(variance) if variance > 0 else 0.0
-        denom = std if std > 0 else 1.0
-        advantages = [(r - mean) / denom for r in rewards]
+        if center_adv:
+            if baseline is None:
+                center = sum(r * w for r, w in zip(rewards, weights)) / weight_total
+            else:
+                center = float(baseline)
+        else:
+            center = 0.0
+        advantages = [r - center for r in rewards]
+        if normalize_adv_std:
+            variance = sum(w * (a ** 2) for a, w in zip(advantages, weights)) / weight_total
+            std = math.sqrt(variance) if variance > 0 else 0.0
+            if std > 0:
+                advantages = [a / std for a in advantages]
 
         epochs = max(1, int(update_epochs))
         clip_ratio = max(0.0, float(clip_ratio))
+        group_mean_len = (
+            sum(max(1, len(traj)) for traj in trajectories) / len(trajectories)
+            if trajectories
+            else 1.0
+        )
+        norm_mode = str(length_norm_mode or "per_trajectory").lower()
         for _ in range(epochs):
             logits_updates = [[0.0] * len(p["logits"]) for p in self.params]
             for traj, adv, weight in zip(trajectories, advantages, weights):
-                scaled_adv = adv * weight
+                if not traj:
+                    continue
+                if norm_mode == "per_trajectory":
+                    norm_scale = 1.0 / max(1, len(traj))
+                elif norm_mode == "group_mean":
+                    norm_scale = group_mean_len
+                else:
+                    norm_scale = 1.0
+                scaled_adv = adv * weight * norm_scale
                 for step in traj:
                     param_idx = step["param_idx"]
                     choice_idx = step["choice_idx"]
@@ -466,17 +493,28 @@ class PolicyNetwork:
                     probs = self.softmax(param["logits"])
                     ref_probs = self.softmax(ref_logits[param_idx])
                     new_logp = math.log(max(probs[choice_idx], 1e-12))
-                    ratio = math.exp(new_logp - old_logp)
-                    if scaled_adv >= 0:
-                        ratio_used = min(ratio, 1.0 + clip_ratio)
+                    if use_importance_ratio:
+                        ratio = math.exp(new_logp - old_logp)
+                        if use_clip_objective:
+                            if scaled_adv >= 0:
+                                ratio_used = min(ratio, 1.0 + clip_ratio)
+                            else:
+                                ratio_used = max(ratio, 1.0 - clip_ratio)
+                        else:
+                            ratio_used = ratio
                     else:
-                        ratio_used = max(ratio, 1.0 - clip_ratio)
+                        ratio_used = 1.0
+                    if entropy_coeff > 0:
+                        log_probs = [math.log(max(p, 1e-12)) for p in probs]
+                        entropy = -sum(p * lp for p, lp in zip(probs, log_probs))
                     for j in range(len(param["logits"])):
                         pg_grad = (1.0 if j == choice_idx else 0.0) - probs[j]
                         kl_grad = probs[j] - ref_probs[j]
-                        logits_updates[param_idx][j] += learning_rate * (
-                            ratio_used * scaled_adv * pg_grad - kl_coeff * kl_grad
-                        )
+                        update = ratio_used * scaled_adv * pg_grad - kl_coeff * kl_grad
+                        if entropy_coeff > 0:
+                            entropy_grad = -probs[j] * (log_probs[j] + entropy)
+                            update += entropy_coeff * entropy_grad
+                        logits_updates[param_idx][j] += learning_rate * update
             for i, param in enumerate(self.params):
                 for j in range(len(param["logits"])):
                     param["logits"][j] += logits_updates[i][j]
@@ -530,6 +568,8 @@ def rl_search(
     clip_ratio: float = 0.2,
     update_epochs: int = 2,
     score_weights: Optional[Dict[str, float]] = None,
+    algorithm_label: str = "grpo",
+    algorithm_variant: str = "grpo",
 ) -> Dict[str, Any]:
     config = _load_yaml(config_path)
     search_space, algo_cfg, eval_metrics = _split_config(config)
@@ -555,7 +595,7 @@ def rl_search(
     best_score: float = float("-inf")
     best_config: Dict[str, Any] = {}
     group_size = max(1, int(group_size))
-    bar = tqdm(total=episodes, desc="rl-grpo", unit="ep") if tqdm else None
+    bar = tqdm(total=episodes, desc=f"rl-{algorithm_label}", unit="ep") if tqdm else None
     
     # Initialize reference logits (fixed reference policy)
     ref_logits = policy.clone_logits()
@@ -566,6 +606,30 @@ def rl_search(
     ucb_min_total = 4
     elite_size = 0
     elite_weight = 0.5
+    normalize_adv_std = True
+    center_adv = True
+    length_norm_mode = "per_trajectory"
+    use_importance_ratio = True
+    use_clip_objective = True
+    entropy_coeff = 0.0
+    baseline_mode = "group"
+    baseline_ema_decay = 0.9
+    fixed_baseline = 0.0
+    running_baseline: Optional[float] = None
+    variant = (algorithm_variant or "grpo").lower()
+
+    if variant in {"doctor_grpo", "dr_grpo"}:
+        normalize_adv_std = False
+        length_norm_mode = "none"
+    elif variant == "reinforce_pp":
+        normalize_adv_std = False
+        length_norm_mode = "none"
+        use_importance_ratio = False
+        use_clip_objective = False
+        baseline_mode = "ema"
+    elif variant == "ppo":
+        pass
+
     if isinstance(algo_cfg, dict):
         prior_mix = float(algo_cfg.get("prior_mix", prior_mix))
         prior_min_count = int(algo_cfg.get("prior_min_count", prior_min_count))
@@ -574,6 +638,15 @@ def rl_search(
         ucb_min_total = int(algo_cfg.get("ucb_min_total", ucb_min_total))
         elite_size = int(algo_cfg.get("elite_size", elite_size))
         elite_weight = float(algo_cfg.get("elite_weight", elite_weight))
+        normalize_adv_std = bool(algo_cfg.get("adv_norm_std", normalize_adv_std))
+        center_adv = bool(algo_cfg.get("center_advantage", center_adv))
+        length_norm_mode = str(algo_cfg.get("length_norm_mode", length_norm_mode))
+        use_importance_ratio = bool(algo_cfg.get("use_importance_ratio", use_importance_ratio))
+        use_clip_objective = bool(algo_cfg.get("use_clip_objective", use_clip_objective))
+        entropy_coeff = float(algo_cfg.get("entropy_coeff", entropy_coeff))
+        baseline_mode = str(algo_cfg.get("baseline_mode", baseline_mode)).lower()
+        baseline_ema_decay = float(algo_cfg.get("baseline_ema_decay", baseline_ema_decay))
+        fixed_baseline = float(algo_cfg.get("baseline_value", fixed_baseline))
 
     def _write_report_snapshot() -> None:
         report_dir = os.path.dirname(report_path)
@@ -611,7 +684,7 @@ def rl_search(
                 selection = _deep_update(selection, algo_cfg)
 
             print(
-                f"\n[grpo] episode={ep+1} group={idx+1}/{group_size} selection={json.dumps(selection, ensure_ascii=False)}"
+                f"\n[{algorithm_label}] episode={ep+1} group={idx+1}/{group_size} selection={json.dumps(selection, ensure_ascii=False)}"
             )
 
             cache_key = json.dumps(selection, sort_keys=True, ensure_ascii=False)
@@ -682,6 +755,19 @@ def rl_search(
                 combined_rewards.append(item["reward"])
                 combined_weights.append(elite_weight)
 
+        baseline_for_update: Optional[float] = None
+        if center_adv:
+            if baseline_mode == "ema":
+                batch_mean = sum(rewards) / len(rewards) if rewards else 0.0
+                if running_baseline is None:
+                    running_baseline = batch_mean
+                else:
+                    alpha = max(0.0, min(1.0, baseline_ema_decay))
+                    running_baseline = alpha * running_baseline + (1.0 - alpha) * batch_mean
+                baseline_for_update = running_baseline
+            elif baseline_mode == "fixed":
+                baseline_for_update = fixed_baseline
+
         policy.update_grpo(
             trajectories=combined_trajectories,
             rewards=combined_rewards,
@@ -691,6 +777,13 @@ def rl_search(
             clip_ratio=clip_ratio,
             update_epochs=update_epochs,
             weights=combined_weights,
+            normalize_adv_std=normalize_adv_std,
+            center_adv=center_adv,
+            length_norm_mode=length_norm_mode,
+            use_importance_ratio=use_importance_ratio,
+            use_clip_objective=use_clip_objective,
+            entropy_coeff=entropy_coeff,
+            baseline=baseline_for_update,
         )
         if bar:
             bar.update(1)
@@ -797,6 +890,8 @@ def main() -> None:
         clip_ratio=args.clip_ratio,
         update_epochs=args.update_epochs,
         score_weights=score_weights,
+        algorithm_label="grpo",
+        algorithm_variant="grpo",
     )
 
 

@@ -10,7 +10,7 @@
   &nbsp;
   <img src="https://img.shields.io/badge/license-MIT-green?style=for-the-badge" alt="License">
   &nbsp;
-  <img src="https://img.shields.io/badge/algorithms-14-blue?style=for-the-badge" alt="Algorithms">
+  <img src="https://img.shields.io/badge/algorithms-17-blue?style=for-the-badge" alt="Algorithms">
   &nbsp;
   <img src="https://img.shields.io/badge/datasets-7-orange?style=for-the-badge" alt="Datasets">
   &nbsp;
@@ -22,7 +22,7 @@
 **RAISE** is an open-source toolkit for automated hyper-parameter search and evaluation of Retrieval-Augmented Generation (RAG) pipelines. It provides a unified framework to systematically explore the configuration space of RAG systems — spanning chunking strategies, retrieval models, rerankers, pruners, and generators — and identify optimal configurations through a diverse suite of search algorithms.
 
 **Key Features:**
-- **14 search algorithms** covering Bayesian, evolutionary, bandit-based, local search, and reinforcement learning paradigms
+- **17 search algorithms** covering Bayesian, evolutionary, bandit-based, local search, and reinforcement learning paradigms
 - **Unified API & CLI** for seamless integration into research workflows
 - **Text & multimodal pipelines** with pluggable components
 - **7 built-in benchmarks** from widely-used QA datasets
@@ -30,7 +30,7 @@
 
 ---
 
-## Supported Algorithms (14)
+## Supported Algorithms (17)
 
 RAISE includes a comprehensive suite of hyper-parameter search algorithms organized into five categories:
 
@@ -56,7 +56,7 @@ RAISE includes a comprehensive suite of hyper-parameter search algorithms organi
 <td>Cross-Entropy Method for combinatorial optimization</td>
 </tr>
 <tr>
-<td rowspan="2"><b>Evolutionary</b></td>
+<td rowspan="5"><b>Evolutionary</b></td>
 <td>Regularized Evolution</td>
 <td><code>regularized_evolution</code></td>
 <td>Aging-based evolutionary search</td>
@@ -65,6 +65,21 @@ RAISE includes a comprehensive suite of hyper-parameter search algorithms organi
 <td>GRPO</td>
 <td><code>grpo</code></td>
 <td>Group Relative Policy Optimization with neural policy</td>
+</tr>
+<tr>
+<td>Doctor-GRPO</td>
+<td><code>doctor_grpo</code></td>
+<td>Stabilized GRPO profile with conservative clipping and stronger KL control</td>
+</tr>
+<tr>
+<td>PPO</td>
+<td><code>ppo</code></td>
+<td>Clipped Proximal Policy Optimization with multi-epoch policy updates</td>
+</tr>
+<tr>
+<td>Reinforce++</td>
+<td><code>reinforce_pp</code></td>
+<td>REINFORCE-style policy gradient profile with lightweight regularization</td>
 </tr>
 <tr>
 <td rowspan="4"><b>Local Search</b></td>
@@ -379,7 +394,7 @@ results = run_algorithms(
 | `qa_json_path` | `str` | *(required)* | Path to QA dataset JSON |
 | `corpus_json_path` | `str` | *(required)* | Path to corpus JSON |
 | `config_path` | `str` | *(required)* | Path to algorithm config YAML |
-| `algorithms` | `list[str] \| None` | `None` | Algorithm module names. If `None`, runs all 13 default algorithms |
+| `algorithms` | `list[str] \| None` | `None` | Algorithm module names. If `None`, runs all 16 default algorithms |
 | `eval_mode` | `str` | `"both"` | Evaluation mode |
 | `score_weights` | `str` | `""` | Composite score weights (e.g. `"llmaaj1.0,bertf12.0,rougel1.5"`) |
 | `extra_args` | `dict[str, list[str]] \| None` | `None` | Per-algorithm extra CLI args |
