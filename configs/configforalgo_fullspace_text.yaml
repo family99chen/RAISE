@@ -1,0 +1,32 @@
+rag_search_space:
+  rewriter:
+    model_url: ["http://localhost:9000/v1"]
+    model_name: ["/home/xwh/models/Qwen3-4B-Instruct-2507"]
+    api_key: ""
+    prompt_template_id: ["1", "2", "3"]
+
+  chunking:
+    chunk_size: [256, 512, 1024, 2048]
+    chunk_overlap: [0, 64, 128, 192]
+
+  retrieve:
+    model_url: ["/home/xwh/models/all-MiniLM-L6-v2", "/home/xwh/models/all-MiniLM-L12-v2"]
+    topk: [1, 3, 5, 10, 20, 50]
+    bm25_weight: [0.0, 0.25, 0.5, 0.75, 1.0]
+
+  reranker:
+    model_url: ["/home/xwh/models/ms-marco-MiniLM-L6-v2", "/home/xwh/models/ms-marco-TinyBERT-L2-v2"]
+    topk: [1, 3, 5, 10, 20, 50]
+
+  generator:
+    model_url: ["http://localhost:9000/v1"]
+    model_name: ["/home/xwh/models/Qwen3-4B-Instruct-2507"]
+    api_key: ""
+
+eval_metrics:
+  llmaaj:
+    model_url: "http://localhost:9000/v1"
+    model_name: "/home/xwh/models/Qwen3-4B-Instruct-2507"
+    api_key: ""
+  bert:
+    model_url: "/home/xwh/models/bert-base-uncased"
