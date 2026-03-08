@@ -520,6 +520,7 @@ def evaluate_report(
     queries: Optional[List[str]] = None,
     mode: str = "both",
     eval_cfg: Optional[Dict[str, Any]] = None,
+    outputs: Optional[List[Dict[str, Any]]] = None,
 ) -> Dict[str, Any]:
     if not preds or not refs_list or len(preds) != len(refs_list):
         return {"metrics": _zero_metrics(), "per_item": []}
@@ -612,6 +613,9 @@ def evaluate_report(
         for idx, item in enumerate(per_item):
             item["answer"] = preds[idx] if idx < len(preds) else ""
             item["references"] = refs_list[idx] if idx < len(refs_list) else []
+            if outputs and idx < len(outputs) and isinstance(outputs[idx], dict):
+                item["query"] = outputs[idx].get("query", queries[idx] if queries and idx < len(queries) else "")
+                item["image_paths"] = outputs[idx].get("image_paths", [])
 
     metrics = evaluate_metrics(preds, refs_list, eval_cfg)
     if not metrics:
