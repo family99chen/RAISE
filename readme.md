@@ -582,6 +582,12 @@ RAISEX_CHROMA_CACHE_DIR=/tmp/my_cache python -m raisex.cli.algo_cli ...
 
 > The `.chroma_cache/` directory is included in `.gitignore` by default.
 
+## Evaluation Cache
+
+RAISE also caches completed evaluation results in `.eval_cache/` at the project root. If the dataset contents, config contents, modality, and `eval_mode` are exactly the same, later `evaluate_rag` calls can return immediately without re-running the full pipeline.
+
+This cache stores the final evaluation result (`eval_report`, `outputs`, and `chunking`), while `.chroma_cache/` stores reusable retrieval indexes. You can clear it manually with `rm -rf .eval_cache/`.
+
 ---
 
 ## Entry Points

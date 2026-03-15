@@ -25,15 +25,17 @@ env/
 Thumbs.db
 
 # Project specific
-outputs/
-outputs*/
+/outputs*/
 /models/
 algorithms/configforalgo.yaml
 configs/experiments/configforalgo_fullspace.yaml
 experiments/run_text_benchmarks.py
 
 # ChromaDB persistent cache
-.chroma_cache/
+/.chroma_cache/
+
+# Evaluation result cache
+/.eval_cache/
 
 # Environment
 .env

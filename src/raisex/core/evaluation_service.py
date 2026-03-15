@@ -1,10 +1,15 @@
 import asyncio
+import fcntl
+import hashlib
 import importlib.util
 import json
 import os
 import subprocess
 import sys
+import time
 from typing import Any, Dict, List, Optional, Tuple
+
+import yaml
 
 from raisex.core.config_validator import check_config, check_config_multimodal
 from raisex.pipelines.multimodal.pipeline import (
@@ -81,6 +86,188 @@ def _extract_qa(qa_items: List[Dict[str, Any]]) -> Tuple[List[str], List[List[st
     return queries, references
 
 
+def _eval_cache_root() -> str:
+    return os.environ.get(
+        "RAISEX_EVAL_CACHE_DIR",
+        os.path.join(_project_root(), ".eval_cache"),
+    )
+
+
+def _sha256_bytes(data: bytes) -> str:
+    return hashlib.sha256(data).hexdigest()
+
+
+def _sha256_file(path: str) -> str:
+    with open(path, "rb") as handle:
+        return _sha256_bytes(handle.read())
+
+
+def _normalize_for_cache(value: Any) -> Any:
+    if isinstance(value, dict):
+        return {k: _normalize_for_cache(value[k]) for k in sorted(value)}
+    if isinstance(value, list):
+        return [_normalize_for_cache(item) for item in value]
+    return value
+
+
+def _sanitize_for_cache_preview(value: Any) -> Any:
+    if isinstance(value, dict):
+        sanitized: Dict[str, Any] = {}
+        for key, item in value.items():
+            if key.lower() == "api_key":
+                sanitized[key] = "***"
+            else:
+                sanitized[key] = _sanitize_for_cache_preview(item)
+        return sanitized
+    if isinstance(value, list):
+        return [_sanitize_for_cache_preview(item) for item in value]
+    return value
+
+
+def _config_payload_for_cache(config_path: str) -> Any:
+    with open(config_path, "r", encoding="utf-8") as handle:
+        parsed = yaml.safe_load(handle) or {}
+    return _normalize_for_cache(parsed)
+
+
+def _dataset_name_from_path(path: str) -> str:
+    parent = os.path.basename(os.path.dirname(os.path.abspath(path)))
+    if parent:
+        return parent
+    return os.path.splitext(os.path.basename(path))[0]
+
+
+def _eval_cache_paths(
+    qa_json_path: str,
+    corpus_json_path: str,
+    config_path: str,
+    eval_mode: str,
+    multimodal: bool,
+) -> Tuple[str, str, Dict[str, Any]]:
+    config_payload = _config_payload_for_cache(config_path)
+    cache_meta = {
+        "schema": "raisex-eval-cache-v1",
+        "modality": "multimodal" if multimodal else "text",
+        "eval_mode": eval_mode,
+        "qa_sha256": _sha256_file(qa_json_path),
+        "corpus_sha256": _sha256_file(corpus_json_path),
+        "config": _sanitize_for_cache_preview(config_payload),
+    }
+    key_payload = {
+        "schema": cache_meta["schema"],
+        "modality": cache_meta["modality"],
+        "eval_mode": cache_meta["eval_mode"],
+        "qa_sha256": cache_meta["qa_sha256"],
+        "corpus_sha256": cache_meta["corpus_sha256"],
+        "config": config_payload,
+    }
+    key = _sha256_bytes(
+        json.dumps(key_payload, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode(
+            "utf-8"
+        )
+    )
+    dataset = _dataset_name_from_path(corpus_json_path)
+    cache_dir = os.path.join(
+        _eval_cache_root(),
+        "v1",
+        cache_meta["modality"],
+        eval_mode,
+        dataset,
+        key[:2],
+    )
+    cache_path = os.path.join(cache_dir, f"{key}.json")
+    lock_path = os.path.join(cache_dir, f"{key}.lock")
+    return cache_path, lock_path, cache_meta
+
+
+def _read_eval_cache(path: str) -> Optional[Dict[str, Any]]:
+    if not os.path.isfile(path):
+        return None
+    try:
+        with open(path, "r", encoding="utf-8") as handle:
+            payload = json.load(handle)
+        result = payload.get("result")
+        return result if isinstance(result, dict) else None
+    except Exception:
+        return None
+
+
+def _write_eval_cache(path: str, meta: Dict[str, Any], result: Dict[str, Any]) -> None:
+    tmp_path = f"{path}.tmp.{os.getpid()}"
+    payload = {
+        "schema": meta.get("schema", "raisex-eval-cache-v1"),
+        "created_at": time.time(),
+        "meta": meta,
+        "result": result,
+    }
+    with open(tmp_path, "w", encoding="utf-8") as handle:
+        json.dump(payload, handle, ensure_ascii=False, indent=2)
+        handle.flush()
+        os.fsync(handle.fileno())
+    os.replace(tmp_path, path)
+
+
+def _evaluate_with_cache(
+    qa_json_path: str,
+    corpus_json_path: str,
+    config_path: str,
+    eval_mode: str,
+    multimodal: bool,
+) -> Dict[str, Any]:
+    qa_items = _load_json_or_jsonl(qa_json_path)
+    queries, references_list = _extract_qa(qa_items)
+    cache_path, lock_path, cache_meta = _eval_cache_paths(
+        qa_json_path=qa_json_path,
+        corpus_json_path=corpus_json_path,
+        config_path=config_path,
+        eval_mode=eval_mode,
+        multimodal=multimodal,
+    )
+    cached = _read_eval_cache(cache_path)
+    if cached is not None:
+        return cached
+
+    os.makedirs(os.path.dirname(cache_path), exist_ok=True)
+    with open(lock_path, "a+", encoding="utf-8") as lock_handle:
+        fcntl.flock(lock_handle.fileno(), fcntl.LOCK_EX)
+        cached = _read_eval_cache(cache_path)
+        if cached is not None:
+            return cached
+
+        if multimodal:
+            result = asyncio.run(
+                run_batch_async_multimodal(
+                    queries=queries,
+                    selection_path=config_path,
+                    data_json_path=corpus_json_path,
+                    references_list=references_list,
+                    answers_list=None,
+                    eval_mode=eval_mode,
+                    debug_dump=False,
+                )
+            )
+        else:
+            result = asyncio.run(
+                run_batch_async(
+                    queries=queries,
+                    selection_path=config_path,
+                    data_json_path=corpus_json_path,
+                    references_list=references_list,
+                    answers_list=None,
+                    eval_mode=eval_mode,
+                    debug_dump=False,
+                )
+            )
+
+        public_result = {
+            "eval_report": result.get("report"),
+            "outputs": result.get("outputs"),
+            "chunking": result.get("chunking"),
+        }
+        _write_eval_cache(cache_path, cache_meta, public_result)
+        return public_result
+
+
 def evaluate_rag(
     qa_json_path: str,
     corpus_json_path: str,
@@ -90,26 +277,13 @@ def evaluate_rag(
     check = check_config(config_path)
     if not check.get("is_valid", False):
         return {"error": "invalid_config", "errors": check.get("errors", [])}
-
-    qa_items = _load_json_or_jsonl(qa_json_path)
-    queries, references_list = _extract_qa(qa_items)
-
-    result = asyncio.run(
-        run_batch_async(
-            queries=queries,
-            selection_path=config_path,
-            data_json_path=corpus_json_path,
-            references_list=references_list,
-            answers_list=None,
-            eval_mode=eval_mode,
-            debug_dump=False,
-        )
+    return _evaluate_with_cache(
+        qa_json_path=qa_json_path,
+        corpus_json_path=corpus_json_path,
+        config_path=config_path,
+        eval_mode=eval_mode,
+        multimodal=False,
     )
-    return {
-        "eval_report": result.get("report"),
-        "outputs": result.get("outputs"),
-        "chunking": result.get("chunking"),
-    }
 
 
 def evaluate_rag_multimodal(
@@ -121,26 +295,13 @@ def evaluate_rag_multimodal(
     check = check_config_multimodal(config_path)
     if not check.get("is_valid", False):
         return {"error": "invalid_config", "errors": check.get("errors", [])}
-
-    qa_items = _load_json_or_jsonl(qa_json_path)
-    queries, references_list = _extract_qa(qa_items)
-
-    result = asyncio.run(
-        run_batch_async_multimodal(
-            queries=queries,
-            selection_path=config_path,
-            data_json_path=corpus_json_path,
-            references_list=references_list,
-            answers_list=None,
-            eval_mode=eval_mode,
-            debug_dump=False,
-        )
+    return _evaluate_with_cache(
+        qa_json_path=qa_json_path,
+        corpus_json_path=corpus_json_path,
+        config_path=config_path,
+        eval_mode=eval_mode,
+        multimodal=True,
     )
-    return {
-        "eval_report": result.get("report"),
-        "outputs": result.get("outputs"),
-        "chunking": result.get("chunking"),
-    }
 
 
 # you can use if you want, but may exceed the actual upperbound that config really can access
