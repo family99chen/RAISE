@@ -7,7 +7,9 @@ from raisex.search.algorithms.grpo import _parse_score_weights, rl_search
 
 def main() -> None:
     base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-    default_algo_config = os.path.join(os.path.dirname(__file__), "configforalgo.yaml")
+    default_algo_config = os.path.abspath(
+        os.path.join(os.path.dirname(__file__), "../../../../configs/algorithms/default.yaml")
+    )
     default_report = os.path.join(base_dir, "outputs", "doctor_grpo_report.json")
 
     parser = argparse.ArgumentParser(description="Doctor-GRPO search for RAG.")
