@@ -378,7 +378,7 @@ def evaluate_metrics(
     try:
         if _is_metric_enabled("BLEU", eval_cfg):
             bleus = [bleu_score(p, r) for p, r in zip(preds, refs_list)]
-            bleu_vals = [b for b in bleus if b is not None]
+            bleu_vals = [0.0 if b is None else float(b) for b in bleus]
             metrics["BLEU"] = (sum(bleu_vals) / len(bleu_vals)) if bleu_vals else 0.0
     except Exception:
         metrics["BLEU"] = 0.0

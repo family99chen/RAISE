@@ -153,10 +153,8 @@ def rouge_l(pred: str, refs: List[str]) -> float:
 def bleu_score(pred: str, refs: List[str]) -> Optional[float]:
     try:
         from nltk.translate.bleu_score import SmoothingFunction, sentence_bleu
-    except Exception as exc:
-        if os.getenv("EVAL_DEBUG") == "1":
-            return {"score": None, "reason": "", "raw": f"ERROR: {type(exc).__name__}: {exc}"}
-        return {"score": None, "reason": "", "raw": f"ERROR: {type(exc).__name__}"}
+    except Exception:
+        return None
     try:
         pred_tokens = _tokenize(_clean_text(pred))
         ref_tokens = [_tokenize(_clean_text(r)) for r in refs]
@@ -392,7 +390,7 @@ def evaluate_metrics(
     try:
         if _is_metric_enabled("BLEU", eval_cfg):
             bleus = [bleu_score(p, r) for p, r in zip(preds, refs_list)]
-            bleu_vals = [b for b in bleus if b is not None]
+            bleu_vals = [0.0 if b is None else float(b) for b in bleus]
             metrics["BLEU"] = (sum(bleu_vals) / len(bleu_vals)) if bleu_vals else 0.0
     except Exception:
         metrics["BLEU"] = 0.0
@@ -400,7 +398,7 @@ def evaluate_metrics(
     try:
         if _is_metric_enabled("METEOR", eval_cfg):
             meteors = [meteor_score_value(p, r) for p, r in zip(preds, refs_list)]
-            meteor_vals = [m for m in meteors if m is not None]
+            meteor_vals = [0.0 if m is None else float(m) for m in meteors]
             metrics["METEOR"] = (sum(meteor_vals) / len(meteor_vals)) if meteor_vals else 0.0
     except Exception:
         metrics["METEOR"] = 0.0
