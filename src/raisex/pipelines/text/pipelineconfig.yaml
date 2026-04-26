@@ -2,10 +2,10 @@ generator:
   prompt: "You are a helpful assistant. Answer the question using only the provided context. If the answer is not in the context, say you do not know."
 
 concurrency:
-  max_tasks: 20
+  max_tasks: 50
 
 llmaaj:
   prompt: "You are a judge. Determine if the answer is correct based on the reference list.\nRules:\n- Be a careful judge. Irrelevant extra words are allowed.\n- The answer must match a reference item exactly or be a very close paraphrase with the same meaning.\n- If only partially related, overly general, or only loosely similar, it is incorrect.\nReturn JSON only: {{\"score\": 0 or 1, \"reason\": \"short explanation\"}}.\nQuery: {query}\nReference list: {reference}\nAnswer: {answer}"
 
 eval:
-  max_workers: 8
+  max_workers: 50

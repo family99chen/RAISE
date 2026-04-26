@@ -27,6 +27,11 @@ Thumbs.db
 # Project specific
 /outputs*/
 /models/
+/experiments/
+/experiment/
+/experiement/
+/_tmp*/
+/output*.log
 algorithms/configforalgo.yaml
 configs/experiments/configforalgo_fullspace.yaml
 experiments/run_text_benchmarks.py

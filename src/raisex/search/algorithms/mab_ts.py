@@ -115,17 +115,20 @@ def _parse_score_weights(text: str) -> Optional[Dict[str, float]]:
         "em": "ExactMatch",
     }
     weights: Dict[str, float] = {}
+    metric_names = sorted(name_map, key=len, reverse=True)
     for raw in text.split(","):
         part = raw.strip().lower()
         if not part:
             continue
-        idx = len(part)
-        while idx > 0 and (part[idx - 1].isdigit() or part[idx - 1] == "."):
-            idx -= 1
-        if idx == len(part):
+        name = ""
+        weight_str = ""
+        for candidate in metric_names:
+            if part.startswith(candidate):
+                name = candidate
+                weight_str = part[len(candidate) :]
+                break
+        if not name or not weight_str:
             continue
-        name = part[:idx]
-        weight_str = part[idx:]
         metric_key = name_map.get(name)
         if not metric_key:
             continue
