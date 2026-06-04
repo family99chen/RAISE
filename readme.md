@@ -171,6 +171,7 @@ Query ──► Rewriter ──► Chunking ──► Retriever ──► Rerank
 
 For **multimodal** pipelines, a CLIP-based image retrieval stage is added between Retriever and Reranker.
 
+![Figure 1](./figures/raise.png)
 ---
 
 ## Quick Start
