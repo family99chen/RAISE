@@ -5,6 +5,7 @@ from typing import Any, Dict, Optional
 import yaml
 
 from raisex.core.config_loader import resolve_text_schema_path
+from raisex.core.env import resolve_qwen_cfg
 from raisex.llmfactory.llmfactory import create_llm
 
 
@@ -42,12 +43,13 @@ def rewrite_query(
         if not url:
             return query
 
-        model_name = rewriter_cfg.get("model_name")
-        api_key = rewriter_cfg.get("api_key")
+        qwen = resolve_qwen_cfg(rewriter_cfg)
         template_id = rewriter_cfg.get("prompt_template_id", "1")
         system_prompt = _resolve_prompt_template(template_id, config_path=config_path)
 
-        llm = create_llm(url=url, api_key=api_key, model_name=model_name)
+        llm = create_llm(
+            url=qwen["model_url"], api_key=qwen["api_key"], model_name=qwen["model_name"]
+        )
         return llm.generate(query, system=system_prompt)
     except Exception:
         return ""
@@ -66,12 +68,13 @@ async def rewrite_query_async(
         if not url:
             return query
 
-        model_name = rewriter_cfg.get("model_name")
-        api_key = rewriter_cfg.get("api_key")
+        qwen = resolve_qwen_cfg(rewriter_cfg)
         template_id = rewriter_cfg.get("prompt_template_id", "1")
         system_prompt = _resolve_prompt_template(template_id, config_path=config_path)
 
-        llm = create_llm(url=url, api_key=api_key, model_name=model_name)
+        llm = create_llm(
+            url=qwen["model_url"], api_key=qwen["api_key"], model_name=qwen["model_name"]
+        )
         if hasattr(llm, "generate_async"):
             return await llm.generate_async(query, system=system_prompt)
         return await asyncio.to_thread(llm.generate, query, system=system_prompt)

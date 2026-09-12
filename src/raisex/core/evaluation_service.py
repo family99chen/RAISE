@@ -12,6 +12,7 @@ from typing import Any, Dict, List, Optional, Tuple
 import yaml
 
 from raisex.core.config_validator import check_config, check_config_multimodal
+from raisex.core.env import load_project_env
 from raisex.pipelines.multimodal.pipeline import (
     getupperbound_external as getupperbound_external_multimodal,
 )
@@ -20,6 +21,8 @@ from raisex.pipelines.text.pipeline import (
     getupperbound_external as getupperbound_external_pipeline,
 )
 from raisex.pipelines.text.pipeline import run_batch_async
+
+load_project_env()
 
 _DEFAULT_ALGORITHMS = [
     "cross_entropy",

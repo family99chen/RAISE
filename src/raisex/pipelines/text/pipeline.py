@@ -422,39 +422,55 @@ async def run_pipeline_async(
 ) -> Dict[str, Any]:
     debug = os.getenv("PIPELINE_DEBUG") == "1"
     qtag = f"qid{idx}" if idx is not None else "qid-"
-    t0 = time.perf_counter()
-    rewritten = await run_rewriter_stage_async(query, selection_path)
-    if debug:
-        elapsed_ms = (time.perf_counter() - t0) * 1000
-        print(f"[pipeline][debug] {qtag} rewrite done ({elapsed_ms:.1f} ms)", flush=True)
-    t0 = time.perf_counter()
-    retrieval = await run_retriever_stage_async(rewritten, selection_path, collection)
-    if debug:
-        elapsed_ms = (time.perf_counter() - t0) * 1000
-        print(f"[pipeline][debug] {qtag} retrieve done ({elapsed_ms:.1f} ms)", flush=True)
-    t0 = time.perf_counter()
-    reranked = await run_reranker_stage_async(rewritten, selection_path, retrieval)
-    if debug:
-        elapsed_ms = (time.perf_counter() - t0) * 1000
-        print(f"[pipeline][debug] {qtag} rerank done ({elapsed_ms:.1f} ms)", flush=True)
-    t0 = time.perf_counter()
-    pruned_text = await run_pruner_stage_async(rewritten, selection_path, reranked)
-    if debug:
-        elapsed_ms = (time.perf_counter() - t0) * 1000
-        print(f"[pipeline][debug] {qtag} prune done ({elapsed_ms:.1f} ms)", flush=True)
-    t0 = time.perf_counter()
-    answer = await run_generator_stage_async(query, selection_path, pruned_text)
-    if debug:
-        elapsed_ms = (time.perf_counter() - t0) * 1000
-        print(f"[pipeline][debug] {qtag} generate done ({elapsed_ms:.1f} ms)", flush=True)
-    return {
-        "query": query,
-        "rewritten": rewritten,
-        "retrieval": retrieval,
-        "reranked": reranked,
-        "pruned_text": pruned_text,
-        "answer": answer,
-    }
+    try:
+        t0 = time.perf_counter()
+        rewritten = await run_rewriter_stage_async(query, selection_path)
+        if debug:
+            elapsed_ms = (time.perf_counter() - t0) * 1000
+            print(f"[pipeline][debug] {qtag} rewrite done ({elapsed_ms:.1f} ms)", flush=True)
+        t0 = time.perf_counter()
+        retrieval = await run_retriever_stage_async(rewritten, selection_path, collection)
+        if debug:
+            elapsed_ms = (time.perf_counter() - t0) * 1000
+            print(f"[pipeline][debug] {qtag} retrieve done ({elapsed_ms:.1f} ms)", flush=True)
+        t0 = time.perf_counter()
+        reranked = await run_reranker_stage_async(rewritten, selection_path, retrieval)
+        if debug:
+            elapsed_ms = (time.perf_counter() - t0) * 1000
+            print(f"[pipeline][debug] {qtag} rerank done ({elapsed_ms:.1f} ms)", flush=True)
+        t0 = time.perf_counter()
+        pruned_text = await run_pruner_stage_async(rewritten, selection_path, reranked)
+        if debug:
+            elapsed_ms = (time.perf_counter() - t0) * 1000
+            print(f"[pipeline][debug] {qtag} prune done ({elapsed_ms:.1f} ms)", flush=True)
+        t0 = time.perf_counter()
+        answer = await run_generator_stage_async(query, selection_path, pruned_text)
+        if debug:
+            elapsed_ms = (time.perf_counter() - t0) * 1000
+            print(f"[pipeline][debug] {qtag} generate done ({elapsed_ms:.1f} ms)", flush=True)
+        return {
+            "query": query,
+            "rewritten": rewritten,
+            "retrieval": retrieval,
+            "reranked": reranked,
+            "pruned_text": pruned_text,
+            "answer": answer,
+            "pipeline_status": "ok" if str(answer or "").strip() else "empty_answer",
+            "error": None,
+            "error_type": None,
+        }
+    except Exception as exc:
+        return {
+            "query": query,
+            "rewritten": "",
+            "retrieval": [],
+            "reranked": [],
+            "pruned_text": "",
+            "answer": "",
+            "pipeline_status": "error",
+            "error": repr(exc),
+            "error_type": type(exc).__name__,
+        }
 
 
 async def run_batch_async(
@@ -525,6 +541,8 @@ async def run_batch_async(
             queries=queries,
             mode=eval_mode,
             eval_cfg=eval_cfg,
+            outputs=outputs_clean,
+            chunking=chunking,
         )
         batch_elapsed_seconds = time.perf_counter() - batch_t0
         if isinstance(report, dict):

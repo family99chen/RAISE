@@ -13,14 +13,17 @@ from dataclasses import dataclass
 from typing import Dict, List, Optional, Sequence, Tuple
 
 
-DEFAULT_BUDGETS = [120, 300, 600]
-DEFAULT_SEEDS = [11, 22, 33]
-DEFAULT_SCORE_WEIGHTS = "rougel1.0,meteor1.0,f11.0,bleu1.0"
+DEFAULT_BUDGETS = [50]
+DEFAULT_SEEDS = [11, 22, 33, 44, 55]
+DEFAULT_SCORE_WEIGHTS = "rougel0.2,meteor0.2,f10.2,bleu0.2,llmaaj0.2"
 DEFAULT_DATASETS = [
-    ("triviaqa", "data/datasets/triviaqa/qa.json", "data/datasets/triviaqa/corpus.json"),
-    ("scienceqa", "data/datasets/scienceqa/qa.json", "data/datasets/scienceqa/corpus.json"),
-    ("longbench-qasper", "data/datasets/longbench-qasper/qa.json", "data/datasets/longbench-qasper/corpus.json"),
-    ("longbench-multifield", "data/datasets/longbench-multifield/qa.json", "data/datasets/longbench-multifield/corpus.json"),
+    ("hotpotqa", "data/benchmarks/hotpotqa/search/qa.json", "data/benchmarks/hotpotqa/search/corpus.json"),
+    ("triviaqa", "data/benchmarks/triviaqa/search/qa.json", "data/benchmarks/triviaqa/search/corpus.json"),
+    ("msmarco", "data/benchmarks/msmarco/search/qa.json", "data/benchmarks/msmarco/search/corpus.json"),
+    ("squadv2", "data/benchmarks/squadv2/search/qa.json", "data/benchmarks/squadv2/search/corpus.json"),
+    ("qasper", "data/benchmarks/qasper/search/qa.json", "data/benchmarks/qasper/search/corpus.json"),
+    ("scienceqa", "data/benchmarks/scienceqa/search/qa.json", "data/benchmarks/scienceqa/search/corpus.json"),
+    ("multifieldqa-en", "data/benchmarks/multifieldqa-en/search/qa.json", "data/benchmarks/multifieldqa-en/search/corpus.json"),
 ]
 
 

@@ -3,7 +3,10 @@
 ## Installation
 ```bash
 pip install -e .
+cp .env.example .env
 ```
+
+Set `QWEN_BASE_URL` / `QWEN_API_KEY` / `QWEN_MODEL` for the generator, and `CITYU_LLM_URL` / `CITYU_LLM_KEY` / `CITYU_LLM_MODEL` for LLMAAJ.
 
 ## Evaluation (Text)
 ```bash

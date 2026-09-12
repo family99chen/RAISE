@@ -1,7 +1,6 @@
 # Default text RAG-HPO space for all experiments unless an ablation says otherwise.
 # All-on product: 103,680. With rewriter/reranker/pruner off: 199,680.
 # Generator and judge URLs are frozen, not searchable.
-# Canonical copy: configs/algorithms/fullspace.yaml
 
 rag_search_space:
   rewriter:

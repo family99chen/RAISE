@@ -3,6 +3,7 @@ import os
 import sys
 from typing import Any, Dict, Optional
 
+from raisex.core.env import resolve_qwen_cfg
 from raisex.llmfactory.llmfactory import create_llm
 
 
@@ -42,7 +43,12 @@ def generate_answer(
     model_name: Optional[str] = None,
 ) -> str:
     try:
-        llm = create_llm(url=model_url, api_key=api_key, model_name=model_name)
+        qwen = resolve_qwen_cfg(
+            {"model_url": model_url, "api_key": api_key, "model_name": model_name}
+        )
+        llm = create_llm(
+            url=qwen["model_url"], api_key=qwen["api_key"], model_name=qwen["model_name"]
+        )
         user_prompt = f"Question: {query}\nContext:\n{context}\nAnswer:"
         return llm.generate(user_prompt, system=_get_system_prompt())
     except Exception:
@@ -57,7 +63,12 @@ async def generate_answer_async(
     model_name: Optional[str] = None,
 ) -> str:
     try:
-        llm = create_llm(url=model_url, api_key=api_key, model_name=model_name)
+        qwen = resolve_qwen_cfg(
+            {"model_url": model_url, "api_key": api_key, "model_name": model_name}
+        )
+        llm = create_llm(
+            url=qwen["model_url"], api_key=qwen["api_key"], model_name=qwen["model_name"]
+        )
         user_prompt = f"Question: {query}\nContext:\n{context}\nAnswer:"
         system_prompt = _get_system_prompt()
         if hasattr(llm, "generate_async"):

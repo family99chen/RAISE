@@ -2,6 +2,7 @@
 # All-on product: 103,680. With rewriter/reranker/pruner off: 199,680.
 # Generator and judge URLs are frozen, not searchable.
 # Canonical copy: configs/algorithms/fullspace.yaml
+# Override endpoints with QWEN_* and CITYU_LLM_* in .env.
 
 rag_search_space:
   rewriter:

@@ -494,53 +494,67 @@ async def run_pipeline_async(
 ) -> Dict[str, Any]:
     debug = os.getenv("MM_DEBUG") == "1"
     qtag = f"qid{idx}" if idx is not None else "qid-"
-    if debug:
+    try:
         t0 = time.perf_counter()
-    rewritten = await run_rewriter_stage_async(query, selection_path)
-    if debug:
-        elapsed_ms = (time.perf_counter() - t0) * 1000
-        print(f"[multimodal][debug] {qtag} rewrite done ({elapsed_ms:.1f} ms)", flush=True)
+        rewritten = await run_rewriter_stage_async(query, selection_path)
+        if debug:
+            elapsed_ms = (time.perf_counter() - t0) * 1000
+            print(f"[multimodal][debug] {qtag} rewrite done ({elapsed_ms:.1f} ms)", flush=True)
         t0 = time.perf_counter()
-    retrieval = await run_retriever_stage_async(rewritten, selection_path, collection)
-    if debug:
-        elapsed_ms = (time.perf_counter() - t0) * 1000
-        print(f"[multimodal][debug] {qtag} retrieve done ({elapsed_ms:.1f} ms)", flush=True)
+        retrieval = await run_retriever_stage_async(rewritten, selection_path, collection)
+        if debug:
+            elapsed_ms = (time.perf_counter() - t0) * 1000
+            print(f"[multimodal][debug] {qtag} retrieve done ({elapsed_ms:.1f} ms)", flush=True)
         t0 = time.perf_counter()
-    image_retrieval = await run_multimodal_retriever_stage_async(
-        rewritten, selection_path, clip_index
-    )
-    if debug:
-        elapsed_ms = (time.perf_counter() - t0) * 1000
-        print(
-            f"[multimodal][debug] {qtag} image_retrieve done ({elapsed_ms:.1f} ms)",
-            flush=True,
+        image_retrieval = await run_multimodal_retriever_stage_async(
+            rewritten, selection_path, clip_index
         )
-    _debug(f"image_retrieval={len(image_retrieval)}")
-    if debug:
+        if debug:
+            elapsed_ms = (time.perf_counter() - t0) * 1000
+            print(
+                f"[multimodal][debug] {qtag} image_retrieve done ({elapsed_ms:.1f} ms)",
+                flush=True,
+            )
+        _debug(f"image_retrieval={len(image_retrieval)}")
         t0 = time.perf_counter()
-    reranked = await run_reranker_stage_async(rewritten, selection_path, retrieval)
-    if debug:
-        elapsed_ms = (time.perf_counter() - t0) * 1000
-        print(f"[multimodal][debug] {qtag} rerank done ({elapsed_ms:.1f} ms)", flush=True)
-    pruned_text = _join_candidates(reranked)
-    image_paths = _extract_image_paths(image_retrieval)
-    if debug:
+        reranked = await run_reranker_stage_async(rewritten, selection_path, retrieval)
+        if debug:
+            elapsed_ms = (time.perf_counter() - t0) * 1000
+            print(f"[multimodal][debug] {qtag} rerank done ({elapsed_ms:.1f} ms)", flush=True)
+        pruned_text = _join_candidates(reranked)
+        image_paths = _extract_image_paths(image_retrieval)
         t0 = time.perf_counter()
-    answer = await run_generator_stage_async(
-        query, selection_path, pruned_text, images=image_paths
-    )
-    if debug:
-        elapsed_ms = (time.perf_counter() - t0) * 1000
-        print(f"[multimodal][debug] {qtag} generate done ({elapsed_ms:.1f} ms)", flush=True)
-    return {
-        "query": query,
-        "rewritten": rewritten,
-        "retrieval": retrieval,
-        "image_retrieval": image_retrieval,
-        "reranked": reranked,
-        "pruned_text": pruned_text,
-        "answer": answer,
-    }
+        answer = await run_generator_stage_async(
+            query, selection_path, pruned_text, images=image_paths
+        )
+        if debug:
+            elapsed_ms = (time.perf_counter() - t0) * 1000
+            print(f"[multimodal][debug] {qtag} generate done ({elapsed_ms:.1f} ms)", flush=True)
+        return {
+            "query": query,
+            "rewritten": rewritten,
+            "retrieval": retrieval,
+            "image_retrieval": image_retrieval,
+            "reranked": reranked,
+            "pruned_text": pruned_text,
+            "answer": answer,
+            "pipeline_status": "ok" if str(answer or "").strip() else "empty_answer",
+            "error": None,
+            "error_type": None,
+        }
+    except Exception as exc:
+        return {
+            "query": query,
+            "rewritten": "",
+            "retrieval": [],
+            "image_retrieval": [],
+            "reranked": [],
+            "pruned_text": "",
+            "answer": "",
+            "pipeline_status": "error",
+            "error": repr(exc),
+            "error_type": type(exc).__name__,
+        }
 
 
 async def run_batch_async(

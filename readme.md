@@ -6,6 +6,8 @@
 <h4 align="center">Hyper-Parameter Search & Evaluation Toolkit for Text and Multimodal RAG</h4>
 
 <p align="center">
+  <img src="https://img.shields.io/badge/version-1.2.0-informational?style=for-the-badge" alt="Version">
+  &nbsp;
   <img src="https://img.shields.io/badge/python-%3E%3D3.10-3776AB?style=for-the-badge&logo=python&logoColor=white" alt="Python">
   &nbsp;
   <img src="https://img.shields.io/badge/license-MIT-green?style=for-the-badge" alt="License">
@@ -179,7 +181,10 @@ For **multimodal** pipelines, a CLIP-based image retrieval stage is added betwee
 ### Installation
 ```bash
 pip install -e .
+cp .env.example .env   # then fill generator / judge endpoints
 ```
+
+Generator and LLMAAJ judge URLs come from `.env` (`QWEN_*`, `CITYU_LLM_*`). See [CHANGELOG](CHANGELOG.md) for the v1.2.0 judge-timeout fix and report fields.
 
 ### Evaluate a RAG Configuration
 

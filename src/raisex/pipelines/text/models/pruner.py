@@ -5,6 +5,7 @@ from typing import Any, Dict, List, Optional
 import yaml
 
 from raisex.core.config_loader import resolve_text_schema_path
+from raisex.core.env import resolve_qwen_cfg
 from raisex.llmfactory.llmfactory import create_llm
 
 
@@ -44,8 +45,7 @@ def prune_chunks(
         if not url:
             return combined
 
-        model_name = pruner_cfg.get("model_name")
-        api_key = pruner_cfg.get("api_key")
+        qwen = resolve_qwen_cfg(pruner_cfg)
         template_id = pruner_cfg.get("prompt_template_id", "1")
         system_prompt = _resolve_prompt_template(template_id, config_path=config_path)
 
@@ -56,7 +56,9 @@ def prune_chunks(
             + "\nReturn pruned context only."
         )
 
-        llm = create_llm(url=url, api_key=api_key, model_name=model_name)
+        llm = create_llm(
+            url=qwen["model_url"], api_key=qwen["api_key"], model_name=qwen["model_name"]
+        )
         output = llm.generate(user_prompt, system=system_prompt)
         return output.strip() or combined
     except Exception:
@@ -78,8 +80,7 @@ async def prune_chunks_async(
         if not url:
             return combined
 
-        model_name = pruner_cfg.get("model_name")
-        api_key = pruner_cfg.get("api_key")
+        qwen = resolve_qwen_cfg(pruner_cfg)
         template_id = pruner_cfg.get("prompt_template_id", "1")
         system_prompt = _resolve_prompt_template(template_id, config_path=config_path)
 
@@ -90,7 +91,9 @@ async def prune_chunks_async(
             + "\nReturn pruned context only."
         )
 
-        llm = create_llm(url=url, api_key=api_key, model_name=model_name)
+        llm = create_llm(
+            url=qwen["model_url"], api_key=qwen["api_key"], model_name=qwen["model_name"]
+        )
         if hasattr(llm, "generate_async"):
             output = await llm.generate_async(user_prompt, system=system_prompt)
         else:

@@ -4,6 +4,8 @@
 Default behavior:
 - Uses local `longbench-qasper/qasper.jsonl`
 - Builds nested QA subsets of size 20, 50, 100 from one fixed shuffle
+- Freezes corpus at the largest QA size so smaller subsets still retrieve
+  from the same collection
 - Runs the selected algorithms on each subset
 - Reports per-size averages and cross-size variation
 
@@ -109,27 +111,32 @@ def _prepare_nested_subsets(
 
     generated_root = os.path.join(output_root, "generated_datasets")
     os.makedirs(generated_root, exist_ok=True)
-    subsets: List[Dict[str, Any]] = []
+    max_items = shuffled[:max_size]
+    _, frozen_corpus = _build_qasper_outputs(max_items)
+    frozen_corpus_path = os.path.join(
+        generated_root, f"{dataset_name}_corpus_max{max_size}.json"
+    )
+    with open(frozen_corpus_path, "w", encoding="utf-8") as handle:
+        json.dump(frozen_corpus, handle, ensure_ascii=False, indent=2)
 
+    subsets: List[Dict[str, Any]] = []
     for size in sorted(sizes):
         subset_items = shuffled[:size]
-        qa, corpus = _build_qasper_outputs(subset_items)
+        qa, _unused_corpus = _build_qasper_outputs(subset_items)
         subset_dir = os.path.join(generated_root, f"{dataset_name}_{size}")
         os.makedirs(subset_dir, exist_ok=True)
         qa_path = os.path.join(subset_dir, "qa.json")
-        corpus_path = os.path.join(subset_dir, "corpus.json")
         with open(qa_path, "w", encoding="utf-8") as handle:
             json.dump(qa, handle, ensure_ascii=False, indent=2)
-        with open(corpus_path, "w", encoding="utf-8") as handle:
-            json.dump(corpus, handle, ensure_ascii=False, indent=2)
         subsets.append(
             {
                 "dataset": dataset_name,
                 "size": size,
                 "qa_json": qa_path,
-                "corpus_json": corpus_path,
+                "corpus_json": frozen_corpus_path,
                 "qa_count": len(qa),
-                "corpus_count": len(corpus),
+                "corpus_count": len(frozen_corpus),
+                "corpus_mode": "frozen_max",
             }
         )
     return subsets
@@ -543,11 +550,11 @@ def main() -> None:
     parser.add_argument("--budget", type=int, default=None, help="Search budget per algorithm.")
     parser.add_argument("--seeds", default="42,43,44", help="Comma-separated random seeds.")
     parser.add_argument("--subset_seed", type=int, default=42, help="Seed for generating nested subsets.")
-    parser.add_argument("--sizes", default="20,50,100", help="Comma-separated QA subset sizes.")
+    parser.add_argument("--sizes", default="10,50,100,500,1000", help="Comma-separated QA subset sizes.")
     parser.add_argument("--eval_mode", default="avg", choices=["avg", "per_item", "both"])
     parser.add_argument(
         "--score_weights",
-        default="rougel1.0,meteor1.0,f11.0,bleu1.0",
+        default="rougel0.2,meteor0.2,f10.2,bleu0.2,llmaaj0.2",
         help="Weighted scoring string for optimization objective.",
     )
     parser.add_argument("--raw_jsonl", default=RAW_QASPER_JSONL, help="Raw JSONL file used to build subsets.")

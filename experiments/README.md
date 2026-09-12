@@ -1,22 +1,20 @@
-# Five-Algorithm Benchmark (raise)
+# Experiment runners
 
-This folder provides a reproducible benchmark pipeline for:
+Keep this folder small. The live entry points are:
 
-- `grpo`
-- `greedy`
-- `tpe`
-- `mab_ts`
-- `random`
+- `prepare_benchmarks.py` — build `data/benchmarks/` (search 200 / held-out 500)
+- `run_five_algorithms.py` / `analyze_five_algorithms.py` — main algorithm comparison
+- `run_qa_size_ablation.py` — QA-size curve on one dataset
+- `run_seed_stability_size_sweep.py` — seed variance vs QA size
+- `run_paired_random_average_ablation.py` — search vs random-mean, paired by seed
+- `run_text_benchmarks.py` / `run_text_benchmarks_generated.py` — rebuild-and-run helpers
 
-It follows the agreed protocol:
+## Corpus rule
 
-- Budgets: `120,300,600`
-- Seeds: `11,22,33,44,55`
-- Unified objective: same `--score_weights`
-- GRPO main run uses `--reward_mode composite`
-- Greedy is run once per seed, then truncated to budget in analysis
+- Everyday search/eval: each question keeps its own attached context. Corpus grows with QA count.
+- QA-size sweeps: freeze corpus at the **largest** QA size. A 20-QA or 100-QA run still retrieves from the 200-QA collection.
 
-## 1) Run experiments
+## Example
 
 ```bash
 python experiments/run_five_algorithms.py \
@@ -24,43 +22,7 @@ python experiments/run_five_algorithms.py \
   --corpus_json data/datasets/triviaqa/corpus.json \
   --config_yaml configs/algorithms/default.yaml \
   --output_root outputs-experiments \
-  --budgets 120,300,600 \
+  --budgets 50 \
   --seeds 11,22,33,44,55 \
-  --eval_mode both \
-  --score_weights "llmaaj1.0,bertf12.0,rougel1.5,f11.5,bleu0.5,em1.0"
+  --eval_mode both
 ```
-
-Optional GRPO ablation runs at max budget:
-
-```bash
-python experiments/run_five_algorithms.py \
-  --qa_json data/datasets/triviaqa/qa.json \
-  --corpus_json data/datasets/triviaqa/corpus.json \
-  --config_yaml configs/algorithms/default.yaml \
-  --output_root outputs-experiments \
-  --run_ablations
-```
-
-## 2) Analyze results
-
-```bash
-python experiments/analyze_five_algorithms.py \
-  --results_root outputs-experiments/results \
-  --output_dir outputs-experiments/analysis \
-  --budgets 120,300,600 \
-  --seeds 11,22,33,44,55
-```
-
-Generated artifacts:
-
-- `per_run.csv`
-- `table1_objective.csv`
-- `table2_metrics.csv`
-- `significance.csv`
-- `anytime_budget_120.png`, `anytime_budget_300.png`, `anytime_budget_600.png` (if `matplotlib` installed)
-- `summary.json`
-
-## Notes
-
-- Statistical test uses Wilcoxon if `scipy` is available; otherwise it falls back to paired sign test.
-- Objective is taken from trial `reward` if present (GRPO composite), otherwise trial `score`.

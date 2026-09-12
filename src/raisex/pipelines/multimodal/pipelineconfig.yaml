@@ -8,4 +8,6 @@ llmaaj:
   prompt: "You are a judge. Determine if the answer is correct based on the reference list.\nRules:\n- Be a careful judge. Irrelevant extra words are allowed.\n- The answer must match a reference item exactly or be a very close paraphrase with the same meaning.\n- If only partially related, overly general, or only loosely similar, it is incorrect.\nReturn JSON only: {{\"score\": 0 or 1, \"reason\": \"short explanation\"}}.\nQuery: {query}\nReference list: {reference}\nAnswer: {answer}"
 
 eval:
-  max_workers: 20
+  max_workers: 8
+  per_item_timeout_seconds: 90
+  judge_http_timeout_seconds: 45

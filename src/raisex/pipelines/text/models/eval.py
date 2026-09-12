@@ -1,8 +1,5 @@
 import os
 import re
-import sys
-import time
-import concurrent.futures
 from typing import Any, Dict, List, Optional, Tuple
 
 _BERT_SCORER_CACHE: Dict[Tuple[str, Optional[int], str], Any] = {}
@@ -11,10 +8,8 @@ _BERT_SCORER_CACHE: Dict[Tuple[str, Optional[int], str], Any] = {}
 def clear_eval_cache() -> None:
     _BERT_SCORER_CACHE.clear()
 
-try:
-    from tqdm import tqdm
-except Exception:
-    tqdm = None
+from raisex.core.eval_pool import map_in_flight
+from raisex.core.llmaaj_status import attach_status_metrics, summarize_llmaaj, summarize_pipeline
 from raisex.llmfactory.llmfactory import create_llm
 
 try:
@@ -61,6 +56,15 @@ def _get_eval_item_timeout() -> float:
         return value if value > 0 else 0.0
     except Exception:
         return 120.0
+
+
+def _get_judge_http_timeout() -> float:
+    config = _load_pipeline_config().get("eval", {})
+    try:
+        value = float(config.get("judge_http_timeout_seconds", 45))
+        return value if value > 0 else 45.0
+    except Exception:
+        return 45.0
 
 
 def _tokenize(text: str) -> List[str]:
@@ -390,7 +394,7 @@ def evaluate_metrics(
     try:
         if _is_metric_enabled("BLEU", eval_cfg):
             bleus = [bleu_score(p, r) for p, r in zip(preds, refs_list)]
-            bleu_vals = [0.0 if b is None else float(b) for b in bleus]
+            bleu_vals = [b for b in bleus if b is not None]
             metrics["BLEU"] = (sum(bleu_vals) / len(bleu_vals)) if bleu_vals else 0.0
     except Exception:
         metrics["BLEU"] = 0.0
@@ -398,7 +402,7 @@ def evaluate_metrics(
     try:
         if _is_metric_enabled("METEOR", eval_cfg):
             meteors = [meteor_score_value(p, r) for p, r in zip(preds, refs_list)]
-            meteor_vals = [0.0 if m is None else float(m) for m in meteors]
+            meteor_vals = [m for m in meteors if m is not None]
             metrics["METEOR"] = (sum(meteor_vals) / len(meteor_vals)) if meteor_vals else 0.0
     except Exception:
         metrics["METEOR"] = 0.0
@@ -465,27 +469,42 @@ def _parse_llmaaj_output(text: str) -> Tuple[Optional[int], str, str]:
 def llmaaj_judge(
     query: str, answer: str, reference: str, llmaaj_cfg: Dict[str, Any]
 ) -> Optional[Dict[str, Any]]:
+    from raisex.core.env import resolve_llmaaj_cfg
+
+    llmaaj_cfg = resolve_llmaaj_cfg(llmaaj_cfg)
     url = llmaaj_cfg.get("model_url")
-    if not url:
-        return None
-    prompt = _get_llmaaj_prompt()
-    model_name = llmaaj_cfg.get("model_name") or None
     api_key = llmaaj_cfg.get("api_key") or None
+    model_name = llmaaj_cfg.get("model_name") or None
+    if not url or not api_key:
+        raise RuntimeError(
+            "LLMAAJ 需要 CITYU_LLM_KEY。请把密钥写进项目根目录 .env（可从 .env.example 复制）。"
+        )
+    prompt = _get_llmaaj_prompt()
 
     try:
         llm = create_llm(url=url, api_key=api_key, model_name=model_name)
         user_prompt = prompt.format(query=query, answer=answer, reference=reference)
-        output = llm.generate(user_prompt)
+        output = llm.generate(user_prompt, timeout=_get_judge_http_timeout())
         score, reason, raw = _parse_llmaaj_output(output)
         if os.getenv("EVAL_DEBUG") == "1":
             print(f"[eval][llmaaj] raw={raw!r}")
             print(f"[eval][llmaaj] parsed_score={score} reason={reason!r}")
-        return {"score": score, "reason": reason, "raw": raw}
+        return {"score": score, "reason": reason, "raw": raw, "status": "ok"}
     except Exception as exc:
         if os.getenv("EVAL_DEBUG") == "1":
             print(f"[eval][llmaaj] error={type(exc).__name__}: {exc}")
-            return {"score": None, "reason": "", "raw": f"ERROR: {type(exc).__name__}: {exc}"}
-        return {"score": None, "reason": "", "raw": f"ERROR: {type(exc).__name__}"}
+            return {
+                "score": None,
+                "reason": "",
+                "raw": f"ERROR: {type(exc).__name__}: {exc}",
+                "status": "error",
+            }
+        return {
+            "score": None,
+            "reason": "",
+            "raw": f"ERROR: {type(exc).__name__}",
+            "status": "error",
+        }
 
 
 def _zero_metrics() -> Dict[str, float]:
@@ -518,22 +537,39 @@ def _compute_per_item(
         "ROUGE-L": rouge_l(pred, refs) if enable_rouge else 0.0,
         "BLEU": (bleu_score(pred, refs) or 0.0) if enable_bleu else 0.0,
         "METEOR": (meteor_score_value(pred, refs) or 0.0) if enable_meteor else 0.0,
-        "LLMAAJ": 0.0,
+        "LLMAAJ": None,
+        "LLMAAJ_status": "disabled",
         "LLMAAJ_reason": "",
         "LLMAAJ_raw": "",
     }
     if enable_llmaaj and llmaaj_cfg:
         reference_list = [r for r in refs if r]
-        if reference_list:
-            reference_text = "\n".join(f"- {r}" for r in reference_list)
-            judged = llmaaj_judge(query, pred, reference_text, llmaaj_cfg)
-            if judged:
-                score = judged.get("score")
-                item["LLMAAJ"] = float(score) if score in (0, 1) else 0.0
-                item["LLMAAJ_reason"] = str(judged.get("reason") or "").strip()
-                item["LLMAAJ_raw"] = str(judged.get("raw") or "").strip()
+        if not reference_list:
+            item["LLMAAJ_status"] = "skipped_no_ref"
+            return item
+        judged = llmaaj_judge(
+            query, pred, "\n".join(f"- {r}" for r in reference_list), llmaaj_cfg
+        )
+        raw = str((judged or {}).get("raw") or "")
+        item["LLMAAJ_reason"] = str((judged or {}).get("reason") or "").strip()
+        item["LLMAAJ_raw"] = raw
+        if not judged or judged.get("status") == "error" or raw.startswith("ERROR"):
+            item["LLMAAJ_status"] = "error"
+            return item
+        score = judged.get("score")
+        if score in (0, 1):
+            item["LLMAAJ"] = float(score)
+            item["LLMAAJ_status"] = "judged_1" if int(score) == 1 else "judged_0"
         else:
-            item["LLMAAJ"] = 0.0
+            item["LLMAAJ_status"] = "parse_error"
+    return item
+
+
+def _llmaaj_fail_item(status: str, pred: str, refs: List[str], eval_cfg: Optional[Dict[str, Any]], raw: str) -> Dict[str, Any]:
+    item = _compute_per_item("", pred, refs, None, eval_cfg)
+    item["LLMAAJ"] = None
+    item["LLMAAJ_status"] = status
+    item["LLMAAJ_raw"] = raw
     return item
 
 
@@ -543,9 +579,15 @@ def evaluate_report(
     queries: Optional[List[str]] = None,
     mode: str = "both",
     eval_cfg: Optional[Dict[str, Any]] = None,
+    outputs: Optional[List[Dict[str, Any]]] = None,
+    chunking: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Any]:
     if not preds or not refs_list or len(preds) != len(refs_list):
-        return {"metrics": _zero_metrics(), "per_item": []}
+        empty = {"metrics": _zero_metrics(), "per_item": []}
+        empty["llmaaj"] = summarize_llmaaj([])
+        empty["pipeline"] = summarize_pipeline(outputs, chunking)
+        attach_status_metrics(empty["metrics"], empty["llmaaj"], empty["pipeline"])
+        return empty
 
     llmaaj_cfg = (eval_cfg or {}).get("llmaaj") if eval_cfg else None
     max_workers = _get_eval_max_workers()
@@ -557,69 +599,34 @@ def evaluate_report(
         indexed = list(enumerate(zip(queries or ["" for _ in preds], preds, refs_list)))
         results: List[Optional[Dict[str, Any]]] = [None] * len(indexed)
         try:
-            per_item_timeout = _get_eval_item_timeout()
-            default_item = {
-                "ExactMatch": 0.0,
-                "F1": 0.0,
-                "ROUGE-L": 0.0,
-                "BLEU": 0.0,
-                "METEOR": 0.0,
-                "LLMAAJ": 0.0,
-            }
-            with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
-                futures = {
-                    executor.submit(_compute_per_item, q, p, r, llmaaj_cfg, eval_cfg): idx
-                    for idx, (q, p, r) in indexed
-                }
-                pending = set(futures.keys())
-                start_times = {f: time.monotonic() for f in pending}
-                bar = (
-                    tqdm(total=len(futures), desc="eval", unit="qa", file=sys.stdout)
-                    if tqdm is not None
-                    else None
-                )
-                while pending:
-                    done, not_done = concurrent.futures.wait(
-                        pending,
-                        timeout=0.1,
-                        return_when=concurrent.futures.FIRST_COMPLETED,
-                    )
-                    for future in done:
-                        idx = futures[future]
-                        try:
-                            results[idx] = future.result()
-                        except Exception:
-                            results[idx] = dict(default_item)
-                        if bar:
-                            bar.update(1)
-                    pending = not_done
-                    if per_item_timeout > 0:
-                        now = time.monotonic()
-                        timed_out = [
-                            f for f in pending if (now - start_times.get(f, now)) > per_item_timeout
-                        ]
-                        for future in timed_out:
-                            future.cancel()
-                            idx = futures[future]
-                            results[idx] = dict(default_item)
-                            pending.remove(future)
-                            if bar:
-                                bar.update(1)
-                if bar:
-                    bar.close()
-        except Exception:
-            results = [dict(default_item) for _ in preds]
+            work = [(q, p, r) for _idx, (q, p, r) in indexed]
+            mapped = map_in_flight(
+                work,
+                lambda item: _compute_per_item(item[0], item[1], item[2], llmaaj_cfg, eval_cfg),
+                max_workers=max_workers,
+                timeout=_get_eval_item_timeout(),
+                on_timeout=lambda item: _llmaaj_fail_item(
+                    "timeout", item[1], item[2], eval_cfg, "TIMEOUT"
+                ),
+                on_error=lambda item, exc: _llmaaj_fail_item(
+                    "error", item[1], item[2], eval_cfg, f"ERROR: {type(exc).__name__}"
+                ),
+                desc="eval",
+            )
+            results = list(mapped)
+        except Exception as exc:
+            results = [
+                _llmaaj_fail_item("error", pred, refs, eval_cfg, f"ERROR: {type(exc).__name__}")
+                for pred, refs in zip(preds, refs_list)
+            ]
 
-        per_item = [r if r is not None else {
-            "ExactMatch": 0.0,
-            "F1": 0.0,
-            "ROUGE-L": 0.0,
-            "BLEU": 0.0,
-            "METEOR": 0.0,
-            "LLMAAJ": 0.0,
-            "LLMAAJ_reason": "",
-            "LLMAAJ_raw": "",
-        } for r in results]
+        per_item = []
+        for idx, row in enumerate(results):
+            if row is None:
+                pred = preds[idx] if idx < len(preds) else ""
+                refs = refs_list[idx] if idx < len(refs_list) else []
+                row = _llmaaj_fail_item("error", pred, refs, eval_cfg, "ERROR: missing")
+            per_item.append(row)
 
         if _is_metric_enabled("BERTScore-F1", eval_cfg) and _is_bert_enabled(eval_cfg):
             bert_items = bert_f1_per_item(preds, refs_list, eval_cfg)
@@ -640,12 +647,21 @@ def evaluate_report(
     if not metrics:
         metrics = _zero_metrics()
 
-    report: Dict[str, Any] = {}
+    llmaaj = summarize_llmaaj(per_item)
+    pipeline = summarize_pipeline(outputs, chunking)
+    attach_status_metrics(metrics, llmaaj, pipeline)
+    if llmaaj.get("timeout_n") or llmaaj.get("error_n") or llmaaj.get("parse_error_n"):
+        print(
+            f"[eval][llmaaj] status={llmaaj.get('status')} "
+            f"judged={llmaaj.get('judged_n')}/{llmaaj.get('n')} "
+            f"judged_0={llmaaj.get('judged_0')} judged_1={llmaaj.get('judged_1')} "
+            f"timeout={llmaaj.get('timeout_n')} error={llmaaj.get('error_n')} "
+            f"parse={llmaaj.get('parse_error_n')} score={llmaaj.get('score')}",
+            flush=True,
+        )
+
+    report: Dict[str, Any] = {"llmaaj": llmaaj, "pipeline": pipeline}
     if mode in {"avg", "both"}:
-        if per_item:
-            metrics["LLMAAJ"] = sum(i["LLMAAJ"] for i in per_item) / len(per_item)
-        else:
-            metrics["LLMAAJ"] = 0.0
         report["metrics"] = metrics
     if mode in {"per_item", "both"}:
         report["per_item"] = per_item

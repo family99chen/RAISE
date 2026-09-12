@@ -72,6 +72,20 @@ class ApiLLM:
                 last_exc = exc
         raise RuntimeError(f"API request failed after 3 attempts: {last_exc}") from last_exc
 
+    def _apply_thinking(self, payload: Dict[str, Any], model: str) -> None:
+        if "qwen" in str(model).lower():
+            payload["chat_template_kwargs"] = {
+                "enable_thinking": os.environ.get("QWEN_ENABLE_THINKING", "0") == "1"
+            }
+
+    @staticmethod
+    def _message_text(data: Dict[str, Any]) -> str:
+        msg = ((data.get("choices") or [{}])[0].get("message") or {})
+        content = msg.get("content")
+        if not content:
+            content = msg.get("reasoning") or msg.get("reasoning_content") or ""
+        return content or ""
+
     def _resolve_model_name(self) -> str:
         if self.model_name:
             return self.model_name
@@ -92,13 +106,16 @@ class ApiLLM:
         system: Optional[str] = None,
         temperature: Optional[float] = None,
         max_tokens: Optional[int] = None,
+        timeout: Optional[float] = None,
     ) -> str:
         default_temperature, default_max_tokens, default_timeout = self._load_defaults()
         if temperature is None:
             temperature = default_temperature
         if max_tokens is None:
             max_tokens = default_max_tokens
-        if default_timeout is not None:
+        if timeout is not None:
+            self.timeout = timeout
+        elif default_timeout is not None:
             self.timeout = default_timeout
         try:
             model = self._resolve_model_name()
@@ -113,9 +130,10 @@ class ApiLLM:
                 "temperature": temperature,
                 "max_tokens": max_tokens,
             }
+            self._apply_thinking(payload, model)
             url = self.url.rstrip("/") + "/chat/completions"
             data = self._request_json("POST", url, payload)
-            return data["choices"][0]["message"]["content"]
+            return self._message_text(data)
         except Exception:
             return ""
 
@@ -154,9 +172,10 @@ class ApiLLM:
                 "temperature": temperature,
                 "max_tokens": max_tokens,
             }
+            self._apply_thinking(payload, model)
             url = self.url.rstrip("/") + "/chat/completions"
             data = self._request_json("POST", url, payload)
-            return data["choices"][0]["message"]["content"]
+            return self._message_text(data)
         except Exception:
             return ""
 
